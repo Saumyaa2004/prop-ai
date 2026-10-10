@@ -1,0 +1,5 @@
+# Prop AI backend dependencies
+# Install with: python -m pip install -r requirements.txt
+
+fastapi==0.143.0
+uvicorn[standard]==0.54.0
