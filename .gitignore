@@ -1,0 +1,39 @@
+# ===========================================
+# Prop AI - files Git should never track
+# ===========================================
+
+# ---- Secrets and environment variables ----
+# .env files hold passwords and API keys. Never commit them.
+.env
+.env.*
+# ...except the example file, which documents the variable names without real values
+!.env.example
+
+# ---- Python ----
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+build/
+.vite/
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- Editor and OS files ----
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
