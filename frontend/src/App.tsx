@@ -98,7 +98,7 @@ function StatusBadge({ live }: { live: boolean }) {
 
 function NavBar() {
   return (
-    <header className="sticky top-0 z-[300] border-b border-white/10 bg-black/60 backdrop-blur-lg">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-black/60 backdrop-blur-lg">
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <a href="#top" className="flex items-center gap-2 font-semibold text-white">
           <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 via-blue-500 to-teal-500">

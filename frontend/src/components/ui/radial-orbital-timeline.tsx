@@ -168,7 +168,9 @@ export default function RadialOrbitalTimeline({
   return (
     <div
       className={cn(
-        "w-full h-screen flex flex-col items-center justify-center overflow-hidden",
+        // isolate: node z-indexes (100-200) stay inside this component instead
+        // of competing with the page's nav bar and dialogs.
+        "isolate w-full h-screen flex flex-col items-center justify-center overflow-hidden",
         className
       )}
       ref={containerRef}

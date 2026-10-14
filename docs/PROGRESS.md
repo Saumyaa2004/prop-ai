@@ -21,7 +21,9 @@ Last updated: 2026-10-14
 - [x] API client (`lib/api.ts`), price formatting, `usePropertySearch` hook — 14 Vitest tests
 - [x] Live listings section: Buy/Rent, locality, bedrooms, budget (resets on Buy↔Rent);
       loading / error / empty / results checked against the running API
-- [ ] Listing details view, CRM views
+- [x] Listing details dialog (`GET /properties/{code}`): shareable `?listing=` links, honest
+      status (Sold/Rented), 404 "not found", focus returns to the opening card — 23 Vitest tests
+- [ ] CRM views (after Phase 4 backend exists)
 
 ## Phases 3–7
 Not started: text AI agent, CRM actions, voice, reliability, deploy.

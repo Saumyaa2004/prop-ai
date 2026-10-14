@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { BedDouble, CalendarDays, MapPin, Ruler, ServerCrash, SearchX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import PropertyDetailsDialog from "@/components/PropertyDetailsDialog";
 import { usePropertySearch } from "@/hooks/usePropertySearch";
 import type { ListingType, Property, SearchFilters } from "@/lib/api";
-import { formatPrice, humanize } from "@/lib/format";
+import { formatDate, formatPrice, humanize } from "@/lib/format";
+import { listingFromUrl, withListing } from "@/lib/url";
 import { cn } from "@/lib/utils";
 
 // Localities present in the demo seed data. (No API endpoint lists them yet.)
@@ -54,9 +56,15 @@ function FilterField({ label, children }: { label: string; children: ReactNode }
   );
 }
 
-function ListingCard({ listing }: { listing: Property }) {
+function ListingCard({
+  listing,
+  onOpen,
+}: {
+  listing: Property;
+  onOpen: (button: HTMLButtonElement) => void;
+}) {
   return (
-    <Card className="border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25">
+    <Card className="relative border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25 has-[button:focus-visible]:border-white/50">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <p className="font-mono text-xs text-white/40">{listing.listing_code}</p>
@@ -64,7 +72,17 @@ function ListingCard({ listing }: { listing: Property }) {
             Demo
           </Badge>
         </div>
-        <CardTitle className="text-base text-white">{listing.title}</CardTitle>
+        <CardTitle className="text-base text-white">
+          {/* "Stretched button": the ::after layer makes the whole card clickable
+              while screen readers still announce just the title as the button. */}
+          <button
+            type="button"
+            onClick={(e) => onOpen(e.currentTarget)}
+            className="text-left outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']"
+          >
+            {listing.title}
+          </button>
+        </CardTitle>
         <p className="text-xl font-semibold text-white">
           {formatPrice(listing.price_inr, listing.listing_type)}
         </p>
@@ -86,12 +104,7 @@ function ListingCard({ listing }: { listing: Property }) {
           {listing.available_from && (
             <span className="flex items-center gap-1.5">
               <CalendarDays className="size-4" aria-hidden="true" />
-              From{" "}
-              {/* "T00:00:00" = local midnight; a bare date parses as UTC and can show the day before. */}
-              {new Date(`${listing.available_from}T00:00:00`).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-              })}
+              From {formatDate(listing.available_from, { year: false })}
             </span>
           )}
         </div>
@@ -140,6 +153,22 @@ export default function ListingsSection() {
     max_price: maxPrice === "" ? undefined : Number(maxPrice),
   };
   const { data, error, loading } = usePropertySearch(filters);
+
+  // Which listing's details are open. Starts from the URL so shared links work.
+  const [selectedCode, setSelectedCode] = useState<string | null>(() =>
+    listingFromUrl(window.location.href)
+  );
+
+  // The card button that opened the dialog, so focus can return to it on close
+  // (Safari doesn't focus buttons on click, so we can't rely on the browser).
+  // A ref, not state: it never affects what is rendered.
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  const openListing = (code: string | null) => {
+    setSelectedCode(code);
+    // Update the address bar without a reload or a new Back-button entry.
+    window.history.replaceState(null, "", withListing(window.location.href, code));
+  };
 
   const changeListingType = (next: ListingType) => {
     setListingType(next);
@@ -267,10 +296,23 @@ export default function ListingsSection() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data?.results.map((listing) => (
-            <ListingCard key={listing.listing_code} listing={listing} />
+            <ListingCard
+              key={listing.listing_code}
+              listing={listing}
+              onOpen={(button) => {
+                returnFocusRef.current = button;
+                openListing(listing.listing_code);
+              }}
+            />
           ))}
         </div>
       )}
+
+      <PropertyDetailsDialog
+        code={selectedCode}
+        onClose={() => openListing(null)}
+        returnFocusRef={returnFocusRef}
+      />
     </section>
   );
 }

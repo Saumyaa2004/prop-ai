@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, buildSearchQuery, searchProperties } from "@/lib/api";
+import { ApiError, buildSearchQuery, getProperty, searchProperties } from "@/lib/api";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -97,5 +97,38 @@ describe("searchProperties", () => {
     await expect(
       searchProperties({ listing_type: "sale" }, { signal: controller.signal })
     ).rejects.toBe(abortError);
+  });
+});
+
+describe("getProperty", () => {
+  it("requests one listing by code", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ listing_code: "PAI-DEMO-002" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const listing = await getProperty("PAI-DEMO-002");
+
+    expect(listing.listing_code).toBe("PAI-DEMO-002");
+    expect(new URL(fetchMock.mock.calls[0][0]).pathname).toBe("/properties/PAI-DEMO-002");
+  });
+
+  it("encodes the code so it cannot change which endpoint is called", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getProperty("../health");
+
+    expect(fetchMock.mock.calls[0][0]).toContain("/properties/..%2Fhealth");
+  });
+
+  it("rejects with status 404 for an unknown code", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse({ detail: "Property not found" }, 404))
+    );
+
+    await expect(getProperty("PAI-DEMO-999")).rejects.toMatchObject({
+      status: 404,
+      message: "Property not found",
+    });
   });
 });

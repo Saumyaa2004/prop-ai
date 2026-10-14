@@ -92,22 +92,33 @@ async function errorFromResponse(response: Response): Promise<ApiError> {
   return new ApiError(response.status, `Request failed (${response.status}).`);
 }
 
-export async function searchProperties(
-  filters: SearchFilters,
-  options: { signal?: AbortSignal } = {}
-): Promise<SearchResponse> {
-  const url = `${API_BASE_URL}/properties/search?${buildSearchQuery(filters)}`;
+type RequestOptions = { signal?: AbortSignal };
 
+/** Shared GET logic: one place for network errors, status checks and JSON. */
+async function getJson<T>(path: string, options: RequestOptions): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(url, { signal: options.signal });
+    response = await fetch(`${API_BASE_URL}${path}`, { signal: options.signal });
   } catch (error) {
-    // A cancelled request is expected (filters changed); let the caller ignore it.
+    // A cancelled request is expected (inputs changed); let the caller ignore it.
     if (options.signal?.aborted) throw error;
     throw new ApiError(0, "Can't reach the Prop AI API. Is the backend running?");
   }
 
   // fetch does NOT throw on 404/422/500, so check the status ourselves.
   if (!response.ok) throw await errorFromResponse(response);
-  return (await response.json()) as SearchResponse;
+  return (await response.json()) as T;
+}
+
+export function searchProperties(
+  filters: SearchFilters,
+  options: RequestOptions = {}
+): Promise<SearchResponse> {
+  return getJson(`/properties/search?${buildSearchQuery(filters)}`, options);
+}
+
+/** One listing by code, any status. Rejects with ApiError status 404 if unknown. */
+export function getProperty(listingCode: string, options: RequestOptions = {}): Promise<Property> {
+  // Encode: the code becomes part of the URL path, so "../health" must stay text.
+  return getJson(`/properties/${encodeURIComponent(listingCode)}`, options);
 }

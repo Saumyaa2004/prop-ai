@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPrice, humanize } from "@/lib/format";
+import { formatDate, formatPrice, humanize } from "@/lib/format";
 
 describe("formatPrice", () => {
   it("shows sale prices in crore", () => {
@@ -19,6 +19,13 @@ describe("formatPrice", () => {
 
   it("never shows a monthly rent in crore, even if it is large", () => {
     expect(formatPrice(12_000_000, "rent")).toBe("₹1,20,00,000/mo");
+  });
+});
+
+describe("formatDate", () => {
+  it("shows the same calendar day as the API date", () => {
+    expect(formatDate("2026-11-01")).toBe("1 Nov 2026");
+    expect(formatDate("2026-10-20", { year: false })).toBe("20 Oct");
   });
 });
 

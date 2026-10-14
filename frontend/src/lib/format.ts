@@ -22,6 +22,18 @@ export function formatPrice(priceInr: number, listingType: ListingType): string 
   return `₹${indianNumber.format(priceInr)}`;
 }
 
+/**
+ * "2026-11-01" -> "1 Nov 2026". Appends local midnight: a bare date string
+ * parses as UTC and would show the previous day west of Greenwich.
+ */
+export function formatDate(isoDate: string, options: { year?: boolean } = {}): string {
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    ...(options.year === false ? {} : { year: "numeric" }),
+  });
+}
+
 /** "power_backup" -> "Power backup" */
 export function humanize(value: string): string {
   const text = value.replaceAll("_", " ");
