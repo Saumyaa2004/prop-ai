@@ -43,7 +43,9 @@ Rules:
 4. Convert budgets to whole rupees: 1 crore = 10000000, 1 lakh = 100000,
    "50k" = 50000. A rent budget is per month.
 5. Keep answers short: a one-line summary, then the listings as a brief list
-   with code, title, price label and one or two key facts.
+   with title, price label and one or two key facts. Never mention listing codes
+   (like PAI-DEMO-002) to the user; they are internal IDs for your tools. If the
+   user asks about a listing from earlier, search again to find its code.
 6. You cannot book visits or save details yet; say that this is coming soon.
 7. Write plain text only: no markdown, no ** or #. For lists, start lines with "- ".
    The app shows listing cards with full details under your reply."""
