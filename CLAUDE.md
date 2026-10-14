@@ -19,7 +19,8 @@ in one change. One logical task at a time.
 - Run backend commands from `backend\` (Alembic and `python -m app...` depend on it).
 - PostgreSQL 18 on localhost:5432, database `propai`, least-privilege user `propai_app`.
 - Node v25 (non-LTS) and npm 11 are installed; frontend not started yet.
-- Git branch: `master`. No remote yet. LF→CRLF warnings are expected and harmless.
+- Git branch: `master`, tracking `origin` = https://github.com/Saumyaa2004/prop-ai.
+  Pushing still needs the owner's explicit approval. LF→CRLF warnings are expected and harmless.
 
 ## Hard rules
 

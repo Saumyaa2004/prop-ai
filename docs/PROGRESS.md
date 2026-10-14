@@ -9,7 +9,9 @@ Last updated: 2026-10-14
 - [x] Idempotent seed: 17 fictional `PAI-DEMO-*` listings
 - [x] `GET /properties/search` — service + router + 22 passing pytest tests
 - [x] `GET /properties/{listing_code}` — any status, 404 if unknown (31 tests total passing)
-- [ ] Push to GitHub (next — needs owner's GitHub account)
+- [x] Pushed to GitHub: https://github.com/Saumyaa2004/prop-ai
+
+**Phase 1 complete.** Next: Phase 2 — frontend (React + TypeScript + Vite).
 
 ## Phases 2–7
 Not started: frontend, text AI agent, CRM actions, voice, reliability, deploy.
