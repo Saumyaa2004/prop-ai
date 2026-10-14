@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  chosenSlot,
   formatDay,
   formatSlot,
   formatTime,
@@ -56,5 +57,31 @@ describe("groupSlotsByDay", () => {
 describe("test setup", () => {
   it("runs outside India time, so the IST tests above mean something", () => {
     expect(new Date("2026-10-18T11:00:00+05:30").getHours()).not.toBe(11);
+  });
+});
+
+describe("chosenSlot", () => {
+  const slots = ["2026-10-15T11:00:00+05:30", "2026-10-15T15:00:00+05:30"];
+  const proposedSlot = slots[0];
+
+  it("preselects the AI's proposal while it is free", () => {
+    expect(chosenSlot({ picked: null, proposedSlot, proposalDismissed: false, slots })).toBe(slots[0]);
+  });
+
+  it("prefers what the user picked", () => {
+    expect(chosenSlot({ picked: slots[1], proposedSlot, proposalDismissed: false, slots })).toBe(slots[1]);
+  });
+
+  it("never falls back to the proposal after a booking error", () => {
+    // The user's pick failed: Confirm must not silently switch to the AI's time.
+    expect(chosenSlot({ picked: null, proposedSlot, proposalDismissed: true, slots })).toBeNull();
+  });
+
+  it("drops a pick that is no longer offered (taken or passed)", () => {
+    expect(chosenSlot({ picked: "2026-10-15T10:00:00+05:30", slots, proposalDismissed: false })).toBeNull();
+  });
+
+  it("ignores a proposal that is no longer free", () => {
+    expect(chosenSlot({ picked: null, proposedSlot: "2026-10-15T10:00:00+05:30", proposalDismissed: false, slots })).toBeNull();
   });
 });

@@ -80,3 +80,25 @@ export function groupSlotsByDay(slots: string[]): SlotDay[] {
   }
   return groups;
 }
+
+/**
+ * Which slot the booking card has selected. The user's pick wins; the AI's
+ * proposal is only a default, and is dropped for good after a booking error,
+ * so Confirm never silently switches to a time the user didn't choose.
+ * Anything no longer offered (taken, or passed) is never selected.
+ */
+export function chosenSlot({
+  picked,
+  proposedSlot,
+  proposalDismissed,
+  slots,
+}: {
+  picked: string | null;
+  proposedSlot?: string;
+  proposalDismissed: boolean;
+  slots: string[];
+}): string | null {
+  if (picked !== null) return slots.includes(picked) ? picked : null;
+  if (proposedSlot && !proposalDismissed && slots.includes(proposedSlot)) return proposedSlot;
+  return null;
+}

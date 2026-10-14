@@ -5,7 +5,13 @@ import { useApi } from "@/hooks/useApi";
 import { ApiError, bookVisit, getSlots } from "@/lib/api";
 import type { Visit } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { formatSlot, formatTime, groupSlotsByDay, isValidIndianMobile } from "@/lib/visits";
+import {
+  chosenSlot,
+  formatSlot,
+  formatTime,
+  groupSlotsByDay,
+  isValidIndianMobile,
+} from "@/lib/visits";
 
 // Module level, so useApi's effect doesn't re-run on every render.
 // The key is "CODE|n"; bumping n re-loads the slots (after a 409).
@@ -43,7 +49,8 @@ export default function BookVisitCard({
 
   const proposalFree = proposedSlot !== undefined && slots.includes(proposedSlot);
   const [picked, setPicked] = useState<string | null>(null);
-  const slot = picked ?? (proposalFree ? proposedSlot : null);
+  const [proposalDismissed, setProposalDismissed] = useState(false);
+  const slot = chosenSlot({ picked, proposedSlot, proposalDismissed, slots });
   const [pickedDay, setPickedDay] = useState<string | null>(null);
   const day =
     days.find((d) => d.day === pickedDay) ??
@@ -66,11 +73,11 @@ export default function BookVisitCard({
       setStatus({ kind: "booked", visit });
     } catch (caught) {
       const apiError = caught instanceof ApiError ? caught : new ApiError(0, "Unexpected error.");
-      if (apiError.status === 409) {
-        // Someone else got there first: show fresh slots and let the user re-pick.
-        setPicked(null);
-        setReloads((n) => n + 1);
-      }
+      // Taken, passed or failed: show fresh slots and make the user pick again,
+      // never falling back to the AI's proposal behind their back.
+      setPicked(null);
+      setProposalDismissed(true);
+      setReloads((n) => n + 1);
       setStatus({
         kind: "error",
         message: apiError.status === 0 ? "Can't reach the Prop AI API. Is the backend running?" : apiError.message,
@@ -116,7 +123,7 @@ export default function BookVisitCard({
 
       {data && (
         <>
-          {proposedSlot && !proposalFree && (
+          {proposedSlot && !proposalFree && !proposalDismissed && (
             <p className="text-sm text-amber-200">
               {formatSlot(proposedSlot)} is no longer free. Please pick another time.
             </p>
@@ -132,7 +139,10 @@ export default function BookVisitCard({
                     key={d.day}
                     type="button"
                     aria-pressed={d.day === day?.day}
-                    onClick={() => setPickedDay(d.day)}
+                    onClick={() => {
+                      setPickedDay(d.day);
+                      setStatus({ kind: "idle" }); // a new choice clears the old error
+                    }}
                     className={cn(
                       "shrink-0 rounded-full border px-3 py-1 text-xs transition-colors",
                       d.day === day?.day
@@ -151,7 +161,10 @@ export default function BookVisitCard({
                     type="button"
                     aria-pressed={s === slot}
                     aria-label={formatSlot(s)}
-                    onClick={() => setPicked(s)}
+                    onClick={() => {
+                      setPicked(s);
+                      setStatus({ kind: "idle" });
+                    }}
                     className={cn(
                       "rounded-lg border px-3 py-1.5 text-sm tabular-nums transition-colors",
                       s === slot
