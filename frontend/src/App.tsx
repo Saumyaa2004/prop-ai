@@ -183,7 +183,7 @@ function Hero() {
         <dl className="mt-10 grid max-w-md grid-cols-3 gap-6 border-t border-white/10 pt-6">
           {[
             ["3", "live API endpoints"],
-            ["128", "passing tests"],
+            ["130", "passing tests"],
             ["17", "demo listings"],
           ].map(([value, label]) => (
             <div key={label}>
