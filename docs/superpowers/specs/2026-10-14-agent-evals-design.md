@@ -49,7 +49,7 @@ know your agent works?" with a method and a number.
     JSON only: `{"pass": bool, "score": 1-5, "reason": "...quotes evidence..."}`.
   - `parse_verdict(text) -> Verdict | None` — accepts plain JSON or JSON in a code
     fence; anything else → `None` (judge error).
-- `run.py` — `python -m evals.run [--case ID] [--repeat N] [--delay S] [--calibrate]`.
+- `run.py` — `python -m evals.run [--case ID] [--category NAME] [--repeat N] [--delay S] [--calibrate]`.
   Runs the agent with the configured Gemini client on the dev DB, judges each run,
   prints a table (case, category, pass rate, avg score, reason), writes
   `evals/reports/latest.json` and `latest.md`. Judge failures (LLMError or unparsable)
