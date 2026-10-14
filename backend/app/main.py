@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.routers import properties
 
 # The application object. Uvicorn looks for this variable by name.
 app = FastAPI(
@@ -17,6 +18,9 @@ app = FastAPI(
     description="Backend for Prop AI, a voice-first real estate assistant.",
     version="0.1.0",
 )
+
+# Each router adds a group of related endpoints, e.g. /properties/search.
+app.include_router(properties.router)
 
 
 @app.get("/health")
