@@ -28,7 +28,12 @@ export function useChat() {
       const response = await sendChat(toApiHistory(conversation), { signal: controller.signal });
       setMessages([
         ...conversation,
-        { role: "assistant", content: cleanReply(response.reply), listings: response.listings },
+        {
+          role: "assistant",
+          content: cleanReply(response.reply),
+          listings: response.listings,
+          visitProposal: response.visit_proposal ?? undefined,
+        },
       ]);
     } catch (caught) {
       if (controller.signal.aborted) return; // chat was reset or left; ignore

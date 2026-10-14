@@ -129,10 +129,19 @@ export interface ChatMessage {
   content: string;
 }
 
-/** Mirrors backend ChatResponse. `listings` come from tool results, not the model's text. */
+/** Mirrors backend VisitProposalRead: a slot the AI suggested. Nothing is booked yet. */
+export interface VisitProposal {
+  listing_code: string;
+  title: string;
+  starts_at: string; // ISO with +05:30
+  label: string;
+}
+
+/** Mirrors backend ChatResponse. `listings` and `visit_proposal` come from tool results. */
 export interface ChatResponse {
   reply: string;
   listings: Property[];
+  visit_proposal: VisitProposal | null;
 }
 
 /** Ask the AI agent. Send the conversation so far; the last message must be the user's. */
@@ -146,6 +155,52 @@ export function sendChat(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages }),
+    },
+    options
+  );
+}
+
+/** Mirrors backend SlotsResponse. Slots are ISO strings in India time (+05:30). */
+export interface SlotsResponse {
+  listing_code: string;
+  slots: string[];
+}
+
+/** Mirrors backend VisitCreate. */
+export interface VisitRequest {
+  listing_code: string;
+  starts_at: string;
+  name: string;
+  phone: string;
+}
+
+/** Mirrors backend VisitRead. The phone is never sent back. */
+export interface Visit {
+  id: number;
+  listing_code: string;
+  title: string;
+  starts_at: string;
+  status: string;
+}
+
+/** Free visit slots for a listing: one day (YYYY-MM-DD), or the next 14 days. */
+export function getSlots(
+  listingCode: string,
+  date?: string,
+  options: RequestOptions = {}
+): Promise<SlotsResponse> {
+  const query = date ? `?${new URLSearchParams({ date })}` : "";
+  return request(`/properties/${encodeURIComponent(listingCode)}/slots${query}`, {}, options);
+}
+
+/** Book a visit. Only called after a person presses Confirm, never by the AI. */
+export function bookVisit(visit: VisitRequest, options: RequestOptions = {}): Promise<Visit> {
+  return request(
+    "/visits",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(visit),
     },
     options
   );

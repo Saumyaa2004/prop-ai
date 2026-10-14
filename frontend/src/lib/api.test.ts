@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, buildSearchQuery, getProperty, searchProperties, sendChat } from "@/lib/api";
+import {
+  ApiError,
+  bookVisit,
+  buildSearchQuery,
+  getProperty,
+  getSlots,
+  searchProperties,
+  sendChat,
+} from "@/lib/api";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -167,5 +175,75 @@ describe("sendChat", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
     await expect(sendChat([{ role: "user", content: "hi" }])).rejects.toMatchObject({ status: 0 });
+  });
+});
+
+describe("visits API", () => {
+  it("asks for one day's slots", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ listing_code: "PAI-DEMO-002", slots: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getSlots("PAI-DEMO-002", "2026-10-18");
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "http://localhost:8000/properties/PAI-DEMO-002/slots?date=2026-10-18"
+    );
+  });
+
+  it("asks for all slots when no day is given", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ listing_code: "PAI-DEMO-002", slots: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getSlots("PAI-DEMO-002");
+
+    expect(fetchMock.mock.calls[0][0]).toBe("http://localhost:8000/properties/PAI-DEMO-002/slots");
+  });
+
+  it("books a visit with a JSON POST", async () => {
+    const visit = {
+      id: 7,
+      listing_code: "PAI-DEMO-002",
+      title: "Hiranandani Gardens 2BHK",
+      starts_at: "2026-10-18T11:00:00+05:30",
+      status: "booked",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(visit, 201));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = {
+      listing_code: "PAI-DEMO-002",
+      starts_at: "2026-10-18T11:00:00+05:30",
+      name: "Asha Demo",
+      phone: "98765 43210",
+    };
+
+    await expect(bookVisit(request)).resolves.toEqual(visit);
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://localhost:8000/visits");
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({ "Content-Type": "application/json" });
+    expect(JSON.parse(init.body)).toEqual(request);
+  });
+
+  it("passes the backend's 409 message to the user", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse({ detail: "Sorry, that slot was just taken." }, 409))
+    );
+
+    const error = await bookVisit({
+      listing_code: "PAI-DEMO-002",
+      starts_at: "2026-10-18T11:00:00+05:30",
+      name: "Asha Demo",
+      phone: "98765 43210",
+    }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(409);
+    expect((error as ApiError).message).toBe("Sorry, that slot was just taken.");
   });
 });

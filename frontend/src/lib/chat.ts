@@ -1,8 +1,9 @@
-import type { ChatMessage, Property } from "@/lib/api";
+import type { ChatMessage, Property, VisitProposal } from "@/lib/api";
 
-/** A message as the UI keeps it: assistant replies carry their listing cards. */
+/** A message as the UI keeps it: assistant replies carry their cards. */
 export interface ConversationMessage extends ChatMessage {
   listings?: Property[];
+  visitProposal?: VisitProposal;
 }
 
 /** Same limit as the backend's ChatRequest (max 20 messages). */
