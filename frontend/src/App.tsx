@@ -3,10 +3,12 @@ import {
   BedDouble,
   Bot,
   Building2,
+  CalendarCheck,
   Car,
   CodeXml,
   Database,
   MapPin,
+  LockKeyhole,
   Mic,
   Ruler,
   Search,
@@ -87,6 +89,18 @@ const FEATURES: Feature[] = [
     body: "Speak your search and hear replies read aloud. Typing always works as a fallback.",
     live: true,
   },
+  {
+    icon: CalendarCheck,
+    title: "Book a site visit",
+    body: "Ask the assistant for a time; you confirm on a card. The database guarantees a slot is never booked twice.",
+    live: true,
+  },
+  {
+    icon: LockKeyhole,
+    title: "Private by design",
+    body: "The AI can propose a visit but never book one, and phone numbers are removed before anything reaches the AI.",
+    live: true,
+  },
 ];
 
 function StatusBadge({ live }: { live: boolean }) {
@@ -156,8 +170,7 @@ function Hero() {
         </h1>
         <p className="mt-6 text-lg leading-relaxed text-white/65">
           Prop AI is a voice-first real estate assistant. Describe what you want in
-          plain words: it searches real listings, qualifies the lead and books the
-          site visit.
+          plain words: it searches real listings and helps you book a site visit.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a
@@ -179,8 +192,8 @@ function Hero() {
         </div>
         <dl className="mt-10 grid max-w-md grid-cols-3 gap-6 border-t border-white/10 pt-6">
           {[
-            ["3", "live API endpoints"],
-            ["132", "passing tests"],
+            ["5", "live API endpoints"],
+            ["184", "passing tests"],
             ["17", "demo listings"],
           ].map(([value, label]) => (
             <div key={label}>

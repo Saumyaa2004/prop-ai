@@ -10,6 +10,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import BookVisitCard from "@/components/BookVisitCard";
 import ListingCard from "@/components/ListingCard";
 import { Button } from "@/components/ui/button";
 import { MAX_MESSAGE_LENGTH, useChat } from "@/hooks/useChat";
@@ -192,6 +193,14 @@ export default function ChatSection({
                     />
                   ))}
                 </div>
+              )}
+              {message.visitProposal && (
+                // The AI only proposed this slot; the person books it here.
+                <BookVisitCard
+                  listingCode={message.visitProposal.listing_code}
+                  title={message.visitProposal.title}
+                  proposedSlot={message.visitProposal.starts_at}
+                />
               )}
             </div>
           ))}

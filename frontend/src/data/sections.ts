@@ -13,7 +13,7 @@ export const sections: OrbitItem[] = [
   {
     id: 2,
     title: "Ask Prop AI",
-    content: "Chat with the AI assistant. It answers only from real listings in the database.",
+    content: "Chat with the AI assistant. It answers from real listings and can set up a site visit.",
     icon: Bot,
     href: "#chat",
   },

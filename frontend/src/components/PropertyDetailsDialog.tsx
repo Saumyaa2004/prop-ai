@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ReactNode, RefObject } from "react";
-import { Check, Link2, SearchX, ServerCrash } from "lucide-react";
+import { CalendarCheck, Check, Link2, SearchX, ServerCrash } from "lucide-react";
+import BookVisitCard from "@/components/BookVisitCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +55,8 @@ function CopyLinkButton({ code }: { code: string }) {
 }
 
 function Details({ listing }: { listing: Property }) {
+  const [booking, setBooking] = useState(false);
+  const bookable = listing.status === "available";
   const perSqft =
     listing.listing_type === "sale"
       ? `₹${Math.round(listing.price_inr / listing.area_sqft).toLocaleString("en-IN")}/sq ft`
@@ -116,8 +119,18 @@ function Details({ listing }: { listing: Property }) {
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
         <p className="text-xs text-white/40">Fictional demo listing for Prop AI.</p>
-        <CopyLinkButton code={listing.listing_code} />
+        <div className="flex gap-2">
+          <CopyLinkButton code={listing.listing_code} />
+          {bookable && !booking && (
+            <Button size="sm" onClick={() => setBooking(true)} className="gap-1.5">
+              <CalendarCheck aria-hidden="true" />
+              Book a visit
+            </Button>
+          )}
+        </div>
       </div>
+
+      {booking && <BookVisitCard listingCode={listing.listing_code} title={listing.title} />}
     </>
   );
 }
@@ -170,7 +183,8 @@ export default function PropertyDetailsDialog({
             body={error.status === 0 ? "Start the backend and try again." : error.message}
           />
         ) : data ? (
-          <Details listing={data} />
+          // key: a different listing starts with a fresh booking form
+          <Details key={data.listing_code} listing={data} />
         ) : null}
       </DialogContent>
     </Dialog>
