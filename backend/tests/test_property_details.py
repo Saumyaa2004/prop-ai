@@ -1,0 +1,84 @@
+"""
+Tests for GET /properties/{listing_code} and the details service.
+
+Expected values come from the fictional seed data in app/seed.py.
+"""
+
+import pytest
+
+from app.services.property_details import get_property_by_code
+
+
+# ---------- happy path ----------
+
+
+def test_returns_full_listing_details(client):
+    response = client.get("/properties/PAI-DEMO-002")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["listing_code"] == "PAI-DEMO-002"
+    assert body["title"] == "Hiranandani Gardens 2BHK"
+    assert body["listing_type"] == "sale"
+    assert body["price_inr"] == 13_800_000
+    assert body["locality"] == "Powai"
+    assert body["is_demo_data"] is True
+    # Internal columns are not exposed.
+    assert "id" not in body
+    assert "created_at" not in body
+
+
+def test_code_lookup_ignores_case_and_spaces(client):
+    response = client.get("/properties/%20pai-demo-002%20")
+
+    assert response.status_code == 200
+    assert response.json()["listing_code"] == "PAI-DEMO-002"
+
+
+@pytest.mark.parametrize(
+    ("code", "status"),
+    [("PAI-DEMO-011", "sold"), ("PAI-DEMO-017", "rented"), ("PAI-DEMO-010", "under_offer")],
+)
+def test_unavailable_listings_are_returned_with_their_status(client, code, status):
+    # Search hides these, but asking for a specific code gets the truth.
+    response = client.get(f"/properties/{code}")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == status
+
+
+# ---------- missing record ----------
+
+
+def test_unknown_code_returns_404(client):
+    response = client.get("/properties/PAI-DEMO-999")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Property not found"}
+
+
+# ---------- invalid input ----------
+
+
+def test_code_longer_than_column_is_rejected_with_422(client):
+    response = client.get("/properties/" + "X" * 21)
+
+    assert response.status_code == 422
+
+
+# ---------- route order ----------
+
+
+def test_search_route_is_not_captured_as_a_listing_code(client):
+    response = client.get("/properties/search", params={"listing_type": "sale"})
+
+    assert response.status_code == 200
+    assert "results" in response.json()
+
+
+# ---------- service reuse ----------
+
+
+def test_service_returns_listing_or_none(db):
+    assert get_property_by_code(db, "PAI-DEMO-014").title == "IIT Gate Studio Rental"
+    assert get_property_by_code(db, "PAI-DEMO-999") is None

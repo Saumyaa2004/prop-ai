@@ -8,8 +8,8 @@ Last updated: 2026-10-14
 - [x] `Property` model + first Alembic migration (DB at head `029858787222`)
 - [x] Idempotent seed: 17 fictional `PAI-DEMO-*` listings
 - [x] `GET /properties/search` — service + router + 22 passing pytest tests
-- [ ] `GET /properties/{listing_code}` details endpoint (next)
-- [ ] Push to GitHub
+- [x] `GET /properties/{listing_code}` — any status, 404 if unknown (31 tests total passing)
+- [ ] Push to GitHub (next — needs owner's GitHub account)
 
 ## Phases 2–7
 Not started: frontend, text AI agent, CRM actions, voice, reliability, deploy.

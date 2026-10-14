@@ -20,3 +20,20 @@ Short talking points per major feature. Only describe what is implemented and te
 - **How it was tested:** 22 pytest cases with FastAPI `TestClient` — happy path,
   case-insensitivity, amenities "has all" (`@>`), limit, sale/rent separation, empty
   results, nine invalid inputs returning 422, and the service called without HTTP.
+
+## Property details (`GET /properties/{listing_code}`)
+- **Why it exists:** a listing page, and later the AI agent, need one listing's facts by
+  code — and a clear "not found" so the agent never invents details.
+- **How it works:** path param (1–20 chars) → `get_property_by_code(db, code)` normalizes
+  case/spaces and looks up the unique `listing_code` → returns `Property | None` → router
+  maps `None` to `404 Property not found`.
+- **Design choice:** returns listings of **any** status with `status` in the body —
+  "it's sold" is true, a 404 would be misleading. *Alternative:* 404 for non-available
+  listings, like search hides them; rejected because it hides a real fact.
+- **Layering:** the service returns `None` instead of raising `HTTPException`, so the AI
+  tool can reuse it without any HTTP concepts.
+- **Failure mode prevented:** route ordering — `/{listing_code}` declared above `/search`
+  would capture "search" as a code and 404 every search. A test guards it.
+- **How it was tested:** 9 pytest cases — happy path (and hidden internal fields),
+  case/whitespace, sold/rented/under-offer, unknown code 404, too-long code 422,
+  route-order guard, service called directly.
