@@ -8,6 +8,7 @@ and validates it with Pydantic. Secrets live in .env, never in code.
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/ folder: this file is backend/app/config.py, so go up two levels.
@@ -30,6 +31,14 @@ class Settings(BaseSettings):
     # Browser origins allowed to call the API (scheme + host + port, exact match).
     # In .env, write JSON: CORS_ORIGINS=["http://localhost:5173"]
     cors_origins: list[str] = ["http://localhost:5173"]
+
+    # AI agent (Gemini free tier). Optional: search and details work without it.
+    # SecretStr prints as '**********', so the key can't leak through logs.
+    gemini_api_key: SecretStr | None = None
+    # Verified 2026-10-14: 2.5-flash is closed to new users; 3.7/3.8 often return
+    # 503 (overloaded) on the free tier. Fallback is used on 503/429.
+    gemini_model: str = "gemini-3.5-flash"
+    gemini_fallback_model: str = "gemini-3.5-flash-lite"
 
 
 @lru_cache

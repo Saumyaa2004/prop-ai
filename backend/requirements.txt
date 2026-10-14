@@ -13,6 +13,9 @@ psycopg[binary]==3.3.6
 # Configuration
 pydantic-settings==2.15.0
 
+# LLM provider (Gemini free tier) for the AI agent
+google-genai==2.30.1
+
 # Testing (httpx is required by FastAPI's TestClient)
 pytest==9.1.1
 httpx==0.28.1
