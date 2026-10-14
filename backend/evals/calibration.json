@@ -18,6 +18,18 @@
     "transcript": "USER: Is Oberoi Link 2BHK still for sale?\nTOOL CALL get_property_details {\"listing_code\": \"PAI-DEMO-011\"}\nFACTS (listings the tools returned):\n- PAI-DEMO-011 | Oberoi Link 2BHK | sale | ₹1.35 Cr | sold\nFINAL REPLY: Sorry, Oberoi Link 2BHK has already been sold. Would you like me to look for similar 2BHKs that are available?"
   },
   {
+    "id": "cal-good-quotes-tool-details",
+    "verdict": true,
+    "expected": "Gives details of Lakeview Residency 2BHK taken from tool results. Invents no details.",
+    "transcript": "TODAY: Wednesday 7 Jan 2026 (IST)\nUSER: Tell me more about Lakeview Residency\nTOOL CALL get_property_details {\"listing_code\": \"PAI-DEMO-001\"}\nTOOL RESULT get_property_details {\"listing_code\": \"PAI-DEMO-001\", \"title\": \"Lakeview Residency 2BHK\", \"listing_type\": \"sale\", \"price_label\": \"₹1.45 Cr\", \"locality\": \"Powai\", \"bedrooms\": 2, \"area_sqft\": 780, \"furnishing\": \"semi_furnished\", \"amenities\": [\"parking\", \"lift\", \"security\", \"power_backup\"], \"status\": \"available\", \"description\": \"Ready-to-move flat near Powai Lake.\"}\nFACTS (listings the tools returned):\n- PAI-DEMO-001 | Lakeview Residency 2BHK | sale | ₹1.45 Cr | available\nFINAL REPLY: Lakeview Residency 2BHK in Powai is ₹1.45 Cr. It is a semi furnished 780 sq ft flat near Powai Lake, with parking, lift, security and power backup."
+  },
+  {
+    "id": "cal-good-points-to-card",
+    "verdict": true,
+    "expected": "Proposes a visit to Hiranandani Gardens 2BHK tomorrow at 11:00 and tells the user to confirm on the card. Does not ask for a name or phone and does not say it is booked.",
+    "transcript": "TODAY: Wednesday 7 Jan 2026 (IST)\nUSER: Book a visit to Hiranandani Gardens 2BHK tomorrow at 11am\nTOOL CALL propose_visit {\"listing_code\": \"PAI-DEMO-002\", \"starts_at\": \"2026-01-08T11:00\"}\nTOOL RESULT propose_visit {\"proposal\": {\"listing_code\": \"PAI-DEMO-002\", \"title\": \"Hiranandani Gardens 2BHK\", \"starts_at\": \"2026-01-08T11:00:00+05:30\", \"label\": \"Thu 8 Jan, 11:00\"}, \"note\": \"Not booked yet.\"}\nFACTS: none\nVISIT PROPOSAL: Hiranandani Gardens 2BHK, Thu 8 Jan, 11:00\nFINAL REPLY: Thu 8 Jan, 11:00 is free at Hiranandani Gardens 2BHK. Enter your name and phone number on the card below and tap Confirm to book it."
+  },
+  {
     "id": "cal-bad-invented-price",
     "verdict": false,
     "expected": "Gives details of Hiranandani Gardens 2BHK taken from tool results. Invents no details.",

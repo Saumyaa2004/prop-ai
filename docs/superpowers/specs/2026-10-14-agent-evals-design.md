@@ -55,9 +55,9 @@ know your agent works?" with a method and a number.
   `evals/reports/latest.json` and `latest.md`. Judge failures (LLMError or unparsable)
   are reported as "judge error", separate from failed cases. Agent LLMError →
   "agent error".
-- `calibration.json` + `--calibrate` — 6 hand-written transcripts with a known
-  verdict (3 pass; 3 fail: invented price, wrong sale/rent filter, asks for a phone
-  number). Reports judge agreement (n/6). Scores are trusted only if agreement is 6/6.
+- `calibration.json` + `--calibrate` — 8 hand-written transcripts with a known
+  verdict (5 pass, incl. quoting tool details and pointing to the card; 3 fail: invented price, wrong sale/rent filter, asks for a phone
+  number). Reports judge agreement (n/8). Scores are trusted only if all agree.
 
 ## App change
 

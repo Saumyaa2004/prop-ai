@@ -168,6 +168,8 @@ class AgentResult:
     listings: list[Property] = field(default_factory=list)
     tool_calls: list[ToolCall] = field(default_factory=list)
     visit_proposal: VisitProposal | None = None
+    # Every (call, result) the model saw: lets the eval judge check facts.
+    tool_results: list[tuple[ToolCall, dict[str, Any]]] = field(default_factory=list)
 
 
 def _summary(p: Property) -> dict[str, Any]:
@@ -269,6 +271,7 @@ def run_agent(
     ]
     listings: dict[str, Property] = {}  # insertion-ordered, de-duplicated
     calls_made: list[ToolCall] = []
+    results_seen: list[tuple[ToolCall, dict[str, Any]]] = []
     proposal: VisitProposal | None = None
 
     for _ in range(MAX_STEPS):
@@ -276,7 +279,7 @@ def run_agent(
 
         if not reply.tool_calls:
             text = reply.text or "Sorry, I couldn't come up with an answer. Please rephrase."
-            return AgentResult(text, list(listings.values()), calls_made, proposal)
+            return AgentResult(text, list(listings.values()), calls_made, proposal, results_seen)
 
         messages.append(ToolCallTurn(reply))
         for call in reply.tool_calls:
@@ -294,6 +297,7 @@ def run_agent(
                 )
             elif call.name == PROPOSE_TOOL.name:
                 proposal = None  # the latest proposal failed; a stale card would contradict the reply
+            results_seen.append((call, result))
             messages.append(ToolResultMessage(call, result))
 
     return AgentResult(
@@ -301,4 +305,5 @@ def run_agent(
         list(listings.values()),
         calls_made,
         proposal,
+        results_seen,
     )

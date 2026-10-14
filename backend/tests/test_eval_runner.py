@@ -129,7 +129,9 @@ def test_main_runs_one_case_end_to_end(monkeypatch, tmp_path):
     code = run.main(["--case", "ooc-weather", "--delay", "0", "--out", str(tmp_path)])
 
     assert code == 0
-    assert "ooc-weather" in (tmp_path / "latest.md").read_text(encoding="utf-8")
+    # A one-case run is a filtered run: it must not overwrite the committed latest.md.
+    assert "ooc-weather" in (tmp_path / "filtered.md").read_text(encoding="utf-8")
+    assert not (tmp_path / "latest.md").exists()
 
 
 def test_report_reason_is_the_real_failure_even_after_an_error(db, tmp_path):
@@ -143,3 +145,75 @@ def test_report_reason_is_the_real_failure_even_after_an_error(db, tmp_path):
     row = next(line for line in md_path.read_text(encoding="utf-8").splitlines() if "ooc-weather" in line)
     assert "judge error" in row or "Invented a price." in row
     assert "Did the right thing." not in row  # a passing reason must never explain a failure
+
+
+# ---------- review fixes: statuses, date, throttle, safety ----------
+
+
+def test_three_statuses_errors_are_not_failures(db):
+    passing = evaluate_case(db, CASE, FakeLLM(answer("ok")), FakeLLM(PASS), sleep=no_sleep)
+    failing = evaluate_case(db, CASE, FakeLLM(answer("ok")), FakeLLM(FAIL), sleep=no_sleep)
+    erroring = evaluate_case(db, CASE, FakeLLM(LLMError("429")), FakeLLM(PASS), sleep=no_sleep)
+    assert (passing.status, failing.status, erroring.status) == ("pass", "fail", "error")
+
+    totals = run._totals([passing, failing, erroring])
+    assert (totals["passed"], totals["failed"], totals["errored"]) == (1, 1, 1)
+    assert totals["pass_rate"] == 0.5  # judged cases only: an error is not a failure
+
+
+def test_judge_sees_todays_date(db):
+    judge = FakeLLM(PASS)
+    evaluate_case(db, CASE, FakeLLM(answer("ok")), judge, sleep=no_sleep)
+    assert "TODAY: " in judge.calls[0][0].text
+
+
+def test_throttle_spaces_every_call():
+    clock = iter([0.0, 1.0, 1.0, 10.0, 10.0])  # now() readings
+    waits: list[float] = []
+    inner = FakeLLM(answer("a"), answer("b"), answer("c"))
+    throttled = run.ThrottledLLM(inner, gap=4.0, clock=lambda: next(clock), sleep=waits.append)
+
+    for _ in range(3):
+        throttled.generate("sys", [UserMessage("hi")], [])
+
+    # 2nd call came 1s after the 1st: wait 3s more. 3rd came 9s later: no wait.
+    assert waits == [3.0]
+    assert len(inner.calls) == 3
+
+
+def test_bad_arguments_are_rejected_before_any_call(monkeypatch):
+    monkeypatch.setattr(run, "make_client", lambda: (_ for _ in ()).throw(AssertionError("no client")))
+    for argv in (["--delay", "-1"], ["--repeat", "0"]):
+        try:
+            run.main(argv)
+        except SystemExit as exc:
+            assert exc.code == 2
+        else:
+            raise AssertionError(f"{argv} was accepted")
+
+
+def test_interrupted_run_still_writes_a_partial_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(run, "make_client", lambda: FakeLLM(answer("ok"), PASS))
+    calls = {"n": 0}
+    real = run.evaluate_case
+
+    def flaky_evaluate(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise KeyboardInterrupt
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(run, "evaluate_case", flaky_evaluate)
+    code = run.main(["--category", "out_of_context", "--delay", "0", "--out", str(tmp_path)])
+
+    assert code == 130
+    data = json.loads((tmp_path / "filtered.json").read_text(encoding="utf-8"))
+    assert data["meta"]["interrupted"] is True and data["totals"]["cases"] == 1
+
+
+def test_report_json_has_status_and_filtered_runs_dont_overwrite_latest(db, tmp_path):
+    outcome = evaluate_case(db, CASE, FakeLLM(answer("ok")), FakeLLM(PASS), sleep=no_sleep)
+    json_path, md_path = write_report([outcome], tmp_path, {"filter": {"case": "ooc-weather"}})
+    assert json_path.name == "filtered.json" and md_path.name == "filtered.md"
+    assert json.loads(json_path.read_text(encoding="utf-8"))["cases"][0]["status"] == "pass"
+    assert "ooc-weather" in md_path.read_text(encoding="utf-8").splitlines()[2]  # filter in header

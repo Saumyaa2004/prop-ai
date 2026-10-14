@@ -42,7 +42,8 @@ def test_conversations_are_valid_chat_requests():
 
 def test_calibration_set_is_balanced():
     items = load("calibration.json")
-    assert len({i["id"] for i in items}) == len(items) == 6
-    assert sorted(i["verdict"] for i in items) == [False, False, False, True, True, True]
+    assert len({i["id"] for i in items}) == len(items)
+    verdicts = [i["verdict"] for i in items]
+    assert verdicts.count(True) >= 3 and verdicts.count(False) >= 3  # both kinds checked
     for item in items:
         assert item["expected"].strip() and "FINAL REPLY:" in item["transcript"], item["id"]

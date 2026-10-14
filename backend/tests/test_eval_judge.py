@@ -55,7 +55,7 @@ def test_prompt_has_expected_behaviour_transcript_and_rules():
     prompt = build_judge_prompt("Asks whether the user wants to buy or rent.", "USER: hi")
     assert "Asks whether the user wants to buy or rent." in prompt
     assert "USER: hi" in prompt
-    assert "never asks for a name or phone" in JUDGE_SYSTEM.lower()
+    assert "never asks the user to tell it their name or phone number" in JUDGE_SYSTEM
     assert "pass" in prompt and "score" in prompt and "reason" in prompt
 
 
@@ -86,3 +86,35 @@ def test_parse_clamps_or_defaults_the_score():
     assert parse_verdict('{"pass": false, "score": 0, "reason": "x"}').score == 1
     assert parse_verdict('{"pass": true, "reason": "x"}').score == 5
     assert parse_verdict('{"pass": false, "reason": "x"}').score == 1
+
+
+def test_parse_skips_quoted_json_before_the_verdict():
+    # Judges quote tool arguments; that object is not the verdict.
+    text = 'The call {"listing_type": "rent"} was wrong. {"pass": false, "score": 2, "reason": "rent for a buy"}'
+    assert parse_verdict(text) == Verdict(False, 2, "rent for a buy")
+
+
+def test_parse_accepts_whole_number_float_scores():
+    assert parse_verdict('{"pass": true, "score": 4.0, "reason": "x"}').score == 4
+
+
+def test_transcript_shows_full_tool_results_today_and_hides_phones(db):
+    listing = get_property_by_code(db, "PAI-DEMO-001")
+    details = {"listing_code": "PAI-DEMO-001", "title": listing.title, "area_sqft": 780,
+               "furnishing": "semi_furnished", "amenities": ["parking", "lift"]}
+    call = ToolCall("get_property_details", {"listing_code": "PAI-DEMO-001"})
+    result = AgentResult(reply="780 sq ft, semi furnished.", listings=[listing],
+                         tool_calls=[call], tool_results=[(call, details)])
+    messages = [{"role": "user", "content": "Tell me about Lakeview, call me on 98765 43210"}]
+
+    transcript = build_transcript(messages, result, today="Wednesday 7 Jan 2026 (IST)")
+
+    assert "TODAY: Wednesday 7 Jan 2026 (IST)" in transcript
+    assert 'TOOL RESULT get_property_details {"listing_code": "PAI-DEMO-001"' in transcript
+    assert '"area_sqft": 780' in transcript and "semi_furnished" in transcript
+    assert "98765" not in transcript and "[phone removed]" in transcript
+
+
+def test_rubric_allows_pointing_to_the_card():
+    assert "on the card" in JUDGE_SYSTEM
+    assert "TOOL RESULT" in JUDGE_SYSTEM

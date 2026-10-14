@@ -175,3 +175,17 @@ def test_failed_later_proposal_clears_the_earlier_one(db):
     )
     result = run_agent(db, [UserMessage("Sunday, 11 or 8pm")], llm, now=NOW)
     assert result.visit_proposal is None
+
+
+def test_agent_records_every_tool_result(db):
+    """The eval judge needs the facts the model saw, not just which tools ran."""
+    llm = FakeLLM(
+        tool_call("check_visit_slots", listing_code=CODE, date="2026-01-11"),
+        tool_call("propose_visit", listing_code=CODE, starts_at="2026-01-11T20:00"),
+        answer("ok"),
+    )
+    result = run_agent(db, [UserMessage("Sunday?")], llm, now=NOW)
+
+    assert [call.name for call, _ in result.tool_results] == ["check_visit_slots", "propose_visit"]
+    assert result.tool_results[0][1]["slots"][0]["label"] == "Sun 11 Jan, 10:00"
+    assert "error" in result.tool_results[1][1]  # 20:00 is outside visiting hours
