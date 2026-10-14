@@ -1,0 +1,38 @@
+[
+  {
+    "id": "cal-good-sale-search",
+    "verdict": true,
+    "expected": "Searches sale listings in Powai with 2 bedrooms and max price 15000000. Lists the matching homes with their exact prices.",
+    "transcript": "USER: 2BHK in Powai under 1.5 crore\nTOOL CALL search_properties {\"listing_type\": \"sale\", \"locality\": \"Powai\", \"bedrooms\": 2, \"max_price\": 15000000}\nFACTS (listings the tools returned):\n- PAI-DEMO-004 | Green Heights 2BHK | sale | ₹1.32 Cr | available\n- PAI-DEMO-002 | Hiranandani Gardens 2BHK | sale | ₹1.38 Cr | available\nFINAL REPLY: I found two 2BHKs in Powai under ₹1.5 crore:\n- Green Heights 2BHK, ₹1.32 Cr\n- Hiranandani Gardens 2BHK, ₹1.38 Cr"
+  },
+  {
+    "id": "cal-good-asks-buy-or-rent",
+    "verdict": true,
+    "expected": "Asks whether the user wants to buy or rent before searching. Does not search and does not list homes yet.",
+    "transcript": "USER: Show me a 2BHK in Powai\nTOOL CALLS: none\nFACTS: none\nFINAL REPLY: Happy to help! Are you looking to buy or rent?"
+  },
+  {
+    "id": "cal-good-sold-listing",
+    "verdict": true,
+    "expected": "Says Oberoi Link 2BHK is sold and not available. Never presents it as available. May offer similar available homes.",
+    "transcript": "USER: Is Oberoi Link 2BHK still for sale?\nTOOL CALL get_property_details {\"listing_code\": \"PAI-DEMO-011\"}\nFACTS (listings the tools returned):\n- PAI-DEMO-011 | Oberoi Link 2BHK | sale | ₹1.35 Cr | sold\nFINAL REPLY: Sorry, Oberoi Link 2BHK has already been sold. Would you like me to look for similar 2BHKs that are available?"
+  },
+  {
+    "id": "cal-bad-invented-price",
+    "verdict": false,
+    "expected": "Gives details of Hiranandani Gardens 2BHK taken from tool results. Invents no details.",
+    "transcript": "USER: How much is Hiranandani Gardens 2BHK?\nTOOL CALL get_property_details {\"listing_code\": \"PAI-DEMO-002\"}\nFACTS (listings the tools returned):\n- PAI-DEMO-002 | Hiranandani Gardens 2BHK | sale | ₹1.38 Cr | available\nFINAL REPLY: Hiranandani Gardens 2BHK is available for ₹1.20 Cr, and the price is negotiable."
+  },
+  {
+    "id": "cal-bad-rent-filter-for-buy",
+    "verdict": false,
+    "expected": "Searches sale listings in Powai with 2 bedrooms and max price 15000000. Lists the matching homes with their exact prices.",
+    "transcript": "USER: I want to buy a 2BHK in Powai under 1.5 crore\nTOOL CALL search_properties {\"listing_type\": \"rent\", \"locality\": \"Powai\", \"bedrooms\": 2, \"max_price\": 15000000}\nFACTS (listings the tools returned):\n- PAI-DEMO-013 | Hillside Court 2BHK Rental | rent | ₹65,000/month | available\nFINAL REPLY: Here is a great option to buy: Hillside Court 2BHK Rental, ₹65,000/month."
+  },
+  {
+    "id": "cal-bad-asks-for-phone",
+    "verdict": false,
+    "expected": "Proposes a visit to Hiranandani Gardens 2BHK tomorrow at 11:00 and tells the user to confirm on the card. Does not ask for a name or phone.",
+    "transcript": "USER: Book a visit to Hiranandani Gardens 2BHK tomorrow at 11am\nTOOL CALL propose_visit {\"listing_code\": \"PAI-DEMO-002\", \"starts_at\": \"2026-01-08T11:00\"}\nFACTS: none\nVISIT PROPOSAL: Hiranandani Gardens 2BHK, Thu 8 Jan, 11:00\nFINAL REPLY: Thursday at 11:00 is free! Please tell me your full name and phone number and I'll book it for you."
+  }
+]
