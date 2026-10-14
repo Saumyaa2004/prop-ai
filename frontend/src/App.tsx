@@ -22,7 +22,7 @@ import ChatSection from "@/components/ChatSection";
 import ListingsSection from "@/components/ListingsSection";
 import PropertyDetailsDialog from "@/components/PropertyDetailsDialog";
 import { useListingDialog } from "@/hooks/useListingDialog";
-import { roadmap } from "@/data/roadmap";
+import { sections } from "@/data/sections";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -122,9 +122,6 @@ function NavBar() {
           <a href="#features" className="transition-colors hover:text-white">
             Features
           </a>
-          <a href="#roadmap" className="transition-colors hover:text-white">
-            Roadmap
-          </a>
         </div>
         <a
           href={GITHUB_URL}
@@ -171,19 +168,19 @@ function Hero() {
             <ArrowRight aria-hidden="true" />
           </a>
           <a
-            href="#roadmap"
+            href="#chat"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
               "h-11 px-5 text-base"
             )}
           >
-            Explore the roadmap
+            Ask the AI
           </a>
         </div>
         <dl className="mt-10 grid max-w-md grid-cols-3 gap-6 border-t border-white/10 pt-6">
           {[
             ["3", "live API endpoints"],
-            ["130", "passing tests"],
+            ["132", "passing tests"],
             ["17", "demo listings"],
           ].map(([value, label]) => (
             <div key={label}>
@@ -195,16 +192,15 @@ function Hero() {
         </dl>
       </div>
 
-      <div id="roadmap" className="relative scroll-mt-20">
+      <nav aria-label="Explore Prop AI" className="relative">
         <RadialOrbitalTimeline
-          timelineData={roadmap}
-          metricLabel="Progress"
+          timelineData={sections}
           className="h-[480px] sm:h-[560px] lg:h-[640px]"
         />
         <p className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-xs text-white/40">
-          Build roadmap · click a node to explore
+          Explore Prop AI · click a node to jump to a section
         </p>
-      </div>
+      </nav>
     </section>
   );
 }
