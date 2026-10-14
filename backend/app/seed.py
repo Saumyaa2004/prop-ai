@@ -42,7 +42,7 @@ def _listing(
     return {
         "listing_code": code,
         "title": title,
-        "description": f"Fictional demonstration listing for Prop AI. {note}",
+        "description": note,  # fictional; the site footer and is_demo_data say so
         "listing_type": listing_type,
         "property_type": property_type,
         "bedrooms": bedrooms,

@@ -194,7 +194,7 @@ function Hero() {
           {[
             ["5", "live API endpoints"],
             ["192", "passing tests"],
-            ["17", "demo listings"],
+            ["17", "listings"],
           ].map(([value, label]) => (
             <div key={label}>
               <dt className="sr-only">{label}</dt>
@@ -210,9 +210,6 @@ function Hero() {
           timelineData={sections}
           className="h-[480px] sm:h-[560px] lg:h-[640px]"
         />
-        <p className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-xs text-white/40">
-          Explore Prop AI · click a node to jump to a section
-        </p>
       </nav>
     </section>
   );
@@ -268,8 +265,7 @@ function SearchShowcase() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-mono text-xs text-white/40">{listing.code}</p>
-                    <CardTitle className="mt-1 text-lg text-white">{listing.title}</CardTitle>
+                    <CardTitle className="text-lg text-white">{listing.title}</CardTitle>
                   </div>
                   <p className="text-xl font-semibold whitespace-nowrap text-white">
                     {formatPrice(listing.priceInr, "sale")}
@@ -299,8 +295,7 @@ function SearchShowcase() {
 
           <p className="flex items-center gap-2 text-xs text-white/40">
             <Database className="size-3.5" aria-hidden="true" />
-            Fictional demo data (PAI-DEMO-*). Cheapest first; sold and under-offer
-            listings are excluded.
+            Cheapest first; sold and under-offer listings are excluded.
           </p>
         </div>
       </div>
@@ -375,7 +370,7 @@ function Footer() {
   return (
     <footer className="border-t border-white/10">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-8 text-xs text-white/40 sm:flex-row sm:justify-between sm:px-6">
-        <p>Prop AI · FastAPI, PostgreSQL, React. All listings are fictional demo data.</p>
+        <p>Prop AI · FastAPI, PostgreSQL, React. All listings are fictional, for illustration only.</p>
         <p>Photos: Unsplash (illustrative).</p>
       </div>
     </footer>

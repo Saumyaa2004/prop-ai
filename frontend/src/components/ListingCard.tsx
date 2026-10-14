@@ -1,5 +1,4 @@
 import { BedDouble, CalendarDays, MapPin, Ruler } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Property } from "@/lib/api";
 import { formatDate, formatPrice, humanize } from "@/lib/format";
@@ -15,12 +14,6 @@ export default function ListingCard({
   return (
     <Card className="relative border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25 has-[button:focus-visible]:border-white/50">
       <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <p className="font-mono text-xs text-white/40">{listing.listing_code}</p>
-          <Badge className="border border-white/15 bg-white/5 text-[10px] text-white/50">
-            Demo
-          </Badge>
-        </div>
         <CardTitle className="text-base text-white">
           {/* "Stretched button": the ::after layer makes the whole card clickable
               while screen readers still announce just the title as the button. */}

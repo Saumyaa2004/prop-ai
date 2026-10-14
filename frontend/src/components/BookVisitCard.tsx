@@ -186,8 +186,8 @@ export default function BookVisitCard({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={100}
-                autoComplete="off" // demo: don't autofill a real name
-                placeholder="e.g. Asha Demo"
+                autoComplete="off" // public site: don't autofill a real name
+                placeholder="e.g. Asha Sharma"
                 className={INPUT}
               />
             </label>
@@ -199,7 +199,7 @@ export default function BookVisitCard({
                 type="tel"
                 inputMode="tel"
                 maxLength={20}
-                autoComplete="off" // demo: don't autofill a real number
+                autoComplete="off" // public site: don't autofill a real number
                 placeholder="e.g. 98765 43210"
                 aria-invalid={phoneInvalid}
                 aria-describedby={hintId}
@@ -218,7 +218,7 @@ export default function BookVisitCard({
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-white/40">Demo project: use a made-up name and number.</p>
+            <p className="text-xs text-white/40">Portfolio project: please use a made-up name and number.</p>
             <Button onClick={confirm} disabled={!ready} className="gap-1.5">
               {status.kind === "submitting" && <Loader2 className="animate-spin" aria-hidden="true" />}
               {slot ? `Confirm ${formatSlot(slot)}` : "Confirm visit"}

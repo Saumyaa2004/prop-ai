@@ -118,7 +118,7 @@ export default function ChatSection({
             </span>
             <div>
               <p className="text-sm font-medium text-white">Prop AI assistant</p>
-              <p className="text-xs text-white/45">Gemini · fictional demo listings</p>
+              <p className="text-xs text-white/45">Powered by Gemini</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -288,8 +288,7 @@ export default function ChatSection({
         {voice.supported
           ? "Voice is converted to text by your browser's speech service. "
           : `${VOICE_UNSUPPORTED_HINT} `}
-        AI replies can be wrong. Listing cards come straight from the database (fictional demo
-        data).
+        AI replies can be wrong. Listing cards come straight from the database.
         {input.length > MAX_MESSAGE_LENGTH - 200 && (
           <span className="ml-2 text-white/60">
             {input.length}/{MAX_MESSAGE_LENGTH}

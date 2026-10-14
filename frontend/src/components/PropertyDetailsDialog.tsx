@@ -66,11 +66,9 @@ function Details({ listing }: { listing: Property }) {
     <>
       <DialogHeader className="gap-3 pr-8">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-xs text-white/40">{listing.listing_code}</span>
           <Badge className={cn("border", STATUS_STYLES[listing.status])}>
             {humanize(listing.status)}
           </Badge>
-          <Badge className="border border-white/15 bg-white/5 text-white/50">Demo</Badge>
         </div>
         <DialogTitle className="text-xl text-white">{listing.title}</DialogTitle>
         <div className="flex items-baseline gap-3">
@@ -117,8 +115,7 @@ function Details({ listing }: { listing: Property }) {
         </ul>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-        <p className="text-xs text-white/40">Fictional demo listing for Prop AI.</p>
+      <div className="flex flex-wrap items-center justify-end gap-3 border-t border-white/10 pt-4">
         <div className="flex gap-2">
           <CopyLinkButton code={listing.listing_code} />
           {bookable && !booking && (

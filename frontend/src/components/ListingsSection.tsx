@@ -102,8 +102,7 @@ export default function ListingsSection({
           Try the search yourself
         </h2>
         <p className="mt-4 text-white/60">
-          Every result comes straight from the API. All listings are fictional demo
-          data.
+          Every result comes straight from the API.
         </p>
       </div>
 
