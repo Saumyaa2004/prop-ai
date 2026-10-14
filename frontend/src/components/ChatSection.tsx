@@ -1,9 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, MessageSquarePlus, RotateCcw, SendHorizontal, Sparkles } from "lucide-react";
+import {
+  Bot,
+  MessageSquarePlus,
+  Mic,
+  MicOff,
+  RotateCcw,
+  SendHorizontal,
+  Sparkles,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import ListingCard from "@/components/ListingCard";
 import { Button } from "@/components/ui/button";
 import { MAX_MESSAGE_LENGTH, useChat } from "@/hooks/useChat";
+import { useReadAloud } from "@/hooks/useReadAloud";
+import { VOICE_UNSUPPORTED_HINT, useVoiceInput } from "@/hooks/useVoiceInput";
 import { cn } from "@/lib/utils";
+import { textForSpeech } from "@/lib/voice/speechText";
 
 const EXAMPLES = [
   "2BHK in Powai under 1.5 crore with parking",
@@ -44,11 +57,42 @@ export default function ChatSection({
     list.scrollTo({ top: list.scrollHeight, behavior: reduce ? "auto" : "smooth" });
   }, [messages.length, sending, error]);
 
+  const readAloud = useReadAloud();
+
   const submit = (text: string) => {
     if (!text.trim() || sending) return;
+    readAloud.cancel(); // a new question makes the old answer irrelevant
     send(text);
     setInput("");
   };
+
+  // Voice: what the user said is sent as soon as recognition is final.
+  const voice = useVoiceInput((text) => submit(text));
+
+  const toggleMic = () => {
+    if (voice.listening) {
+      voice.stop();
+      return;
+    }
+    readAloud.cancel(); // don't let the mic hear the assistant talking
+    voice.start();
+  };
+
+  const newChat = () => {
+    readAloud.cancel();
+    reset();
+  };
+
+  // Read each new assistant reply aloud once. The ref remembers how many
+  // messages were already handled, so re-renders never repeat speech.
+  const handledRef = useRef(messages.length);
+  useEffect(() => {
+    const last = messages.at(-1);
+    if (messages.length > handledRef.current && last?.role === "assistant" && readAloud.enabled) {
+      readAloud.speak(textForSpeech(last.content));
+    }
+    handledRef.current = messages.length;
+  }, [messages, readAloud]);
 
   return (
     <section id="chat" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-24 sm:px-6">
@@ -76,12 +120,27 @@ export default function ChatSection({
               <p className="text-xs text-white/45">Gemini · fictional demo listings</p>
             </div>
           </div>
-          {messages.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5 text-white/70">
-              <MessageSquarePlus aria-hidden="true" />
-              New chat
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {readAloud.supported && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={readAloud.toggle}
+                aria-pressed={readAloud.enabled}
+                className={cn("gap-1.5", readAloud.enabled ? "text-white" : "text-white/60")}
+              >
+                {readAloud.enabled ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+                <span className="hidden sm:inline">Read replies aloud</span>
+                <span className="sr-only sm:hidden">Read replies aloud</span>
+              </Button>
+            )}
+            {messages.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={newChat} className="gap-1.5 text-white/70">
+                <MessageSquarePlus aria-hidden="true" />
+                New chat
+              </Button>
+            )}
+          </div>
         </div>
 
         <div
@@ -165,13 +224,31 @@ export default function ChatSection({
           </label>
           <input
             id="chat-input"
-            value={input}
+            // While listening, show the words recognised so far.
+            value={voice.listening ? voice.interim : input}
+            readOnly={voice.listening}
             onChange={(e) => setInput(e.target.value)}
             maxLength={MAX_MESSAGE_LENGTH}
-            placeholder="e.g. 1BHK to rent in Powai under 50k"
+            placeholder={voice.listening ? "Listening…" : "e.g. 1BHK to rent in Powai under 50k"}
             autoComplete="off"
             className="h-11 flex-1 rounded-xl border border-white/15 bg-black/60 px-4 text-sm text-white outline-none placeholder:text-white/35 focus-visible:border-white/40 focus-visible:ring-2 focus-visible:ring-white/20"
           />
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            onClick={toggleMic}
+            disabled={sending || !voice.supported}
+            title={voice.supported ? undefined : VOICE_UNSUPPORTED_HINT}
+            aria-label={voice.listening ? "Stop listening" : "Start voice input"}
+            aria-pressed={voice.listening}
+            className={cn(
+              "h-11 w-11 p-0",
+              voice.listening && "border-red-400/60 bg-red-500/15 text-red-200"
+            )}
+          >
+            {voice.listening ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}
+          </Button>
           <Button
             type="submit"
             size="lg"
@@ -184,7 +261,15 @@ export default function ChatSection({
         </form>
       </div>
 
+      {voice.error && (
+        <p className="mt-3 text-sm text-red-200" role="alert">
+          {voice.error}
+        </p>
+      )}
       <p className="mt-3 text-xs text-white/40">
+        {voice.supported
+          ? "Voice is converted to text by your browser's speech service. "
+          : `${VOICE_UNSUPPORTED_HINT} `}
         AI replies can be wrong. Listing cards come straight from the database (fictional demo
         data).
         {input.length > MAX_MESSAGE_LENGTH - 200 && (

@@ -67,13 +67,13 @@ export const roadmap: TimelineItem[] = [
   {
     id: 6,
     title: "Voice",
-    date: "Phase 5",
+    date: "Oct 2026",
     content:
-      "Speak to search and book, with text always available as a fallback.",
+      "Speak your search and hear replies read aloud, with typing always available. Booking by voice comes with the CRM.",
     category: "Voice",
     icon: Mic,
     relatedIds: [4],
-    status: "pending",
-    energy: 0,
+    status: "completed",
+    energy: 100,
   },
 ];
