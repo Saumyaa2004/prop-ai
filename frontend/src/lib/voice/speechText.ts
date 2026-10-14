@@ -14,10 +14,14 @@ const NUMBER = String.raw`(\d[\d,]*(?:\.\d+)?)`;
 /** A chat reply rewritten for text-to-speech. */
 export function textForSpeech(reply: string): string {
   const spoken = reply
-    // Order matters: specific price forms before the general ₹ rule.
-    .replace(new RegExp(String.raw`₹\s?${NUMBER}\s?Cr\b`, "g"), "$1 crore rupees")
-    .replace(new RegExp(String.raw`₹\s?${NUMBER}\s?L\b`, "g"), "$1 lakh rupees")
-    .replace(new RegExp(String.raw`₹\s?${NUMBER}\s?/\s?(?:month|mo)\b`, "g"), "$1 rupees a month")
+    // Order matters: specific price forms before the general ₹ rule. Case-
+    // insensitive with spelled-out units, because the model sometimes writes
+    // "₹1.5 Crore" itself instead of quoting the backend's "₹1.38 Cr".
+    .replace(new RegExp(String.raw`₹\s?${NUMBER}\s?(?:cr|crores?)\b`, "gi"), "$1 crore rupees")
+    .replace(new RegExp(String.raw`₹\s?${NUMBER}\s?(?:l|lakhs?|lacs?)\b`, "gi"), "$1 lakh rupees")
+    .replace(new RegExp(String.raw`₹\s?${NUMBER}\s?k\s?/\s?(?:month|mo)\b`, "gi"), "$1 thousand rupees a month")
+    .replace(new RegExp(String.raw`₹\s?${NUMBER}\s?/\s?(?:month|mo)\b`, "gi"), "$1 rupees a month")
+    .replace(new RegExp(String.raw`₹\s?${NUMBER}\s?k\b`, "gi"), "$1 thousand rupees")
     .replace(new RegExp(String.raw`₹\s?${NUMBER}`, "g"), "$1 rupees")
     .replace(/PAI-DEMO-0*(\d+)/gi, "demo listing $1")
     .split("\n")
@@ -33,9 +37,14 @@ export function textForSpeech(reply: string): string {
 
 function capAtSentence(text: string, max: number): string {
   if (text.length <= max) return text;
-  const head = text.slice(0, max);
-  const lastEnd = Math.max(head.lastIndexOf("."), head.lastIndexOf("?"), head.lastIndexOf("!"));
-  return lastEnd > 0 ? head.slice(0, lastEnd + 1) : head;
+  // A sentence ends at . ? or ! followed by whitespace or the end of the text.
+  // A decimal point ("2.15") is followed by a digit, so a price is never cut.
+  // Look one character past the cap so a sentence ending exactly there counts.
+  let lastEnd = -1;
+  for (const match of text.slice(0, max + 1).matchAll(/[.?!](?=\s|$)/g)) {
+    if (match.index < max) lastEnd = match.index;
+  }
+  return lastEnd > 0 ? text.slice(0, lastEnd + 1) : text.slice(0, max);
 }
 
 /** Plain advice for a speech-recognition error code; null = say nothing. */

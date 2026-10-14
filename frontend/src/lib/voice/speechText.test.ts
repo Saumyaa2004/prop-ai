@@ -17,6 +17,24 @@ describe("textForSpeech", () => {
     expect(textForSpeech("Options:\n• A\n• B")).toBe("Options: A. B.");
   });
 
+  it("never cuts a price at its decimal point when capping", () => {
+    // Place the cap right after the "." in "2.15": the old cut ended "...costs 2."
+    const reply = `First sentence. ${"x".repeat(575)} costs 2.15 crore rupees and more.`;
+    expect(reply.indexOf("2.15") + 1).toBe(599);
+
+    expect(textForSpeech(reply)).toBe("First sentence.");
+  });
+
+  it("reads unit words the model writes itself", () => {
+    expect(textForSpeech("Homes under ₹1.5 Crore with parking.")).toBe(
+      "Homes under 1.5 crore rupees with parking."
+    );
+    expect(textForSpeech("About ₹2 crores.")).toBe("About 2 crore rupees.");
+    expect(textForSpeech("Only ₹98 lakh.")).toBe("Only 98 lakh rupees.");
+    expect(textForSpeech("Rent under ₹42k/mo.")).toBe("Rent under 42 thousand rupees a month.");
+    expect(textForSpeech("Rent under ₹50k.")).toBe("Rent under 50 thousand rupees.");
+  });
+
   it("caps long replies at a sentence boundary", () => {
     const long = "This is a sentence. ".repeat(60);
     const spoken = textForSpeech(long);

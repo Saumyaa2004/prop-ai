@@ -159,6 +159,7 @@ export default function ChatSection({
                     key={example}
                     type="button"
                     onClick={() => submit(example)}
+                    disabled={voice.listening}
                     className="rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-sm text-white/80 transition-colors hover:border-white/30 hover:text-white focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:outline-none"
                   >
                     {example}
@@ -204,7 +205,13 @@ export default function ChatSection({
                   ? "Can't reach the Prop AI API. Is the backend running?"
                   : error.message}
               </p>
-              <Button variant="outline" size="sm" onClick={retry} className="gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={retry}
+                disabled={voice.listening}
+                className="gap-1.5"
+              >
                 <RotateCcw aria-hidden="true" />
                 Retry
               </Button>
@@ -216,7 +223,8 @@ export default function ChatSection({
           className="flex items-center gap-2 border-t border-white/10 p-3"
           onSubmit={(e) => {
             e.preventDefault();
-            submit(input);
+            // While listening the voice is the input; Enter must not send a hidden draft.
+            if (!voice.listening) submit(input);
           }}
         >
           <label htmlFor="chat-input" className="sr-only">
@@ -238,7 +246,8 @@ export default function ChatSection({
             size="lg"
             variant="outline"
             onClick={toggleMic}
-            disabled={sending || !voice.supported}
+            // Stoppable even mid-request; otherwise blocked while a reply is pending.
+            disabled={(sending && !voice.listening) || !voice.supported}
             title={voice.supported ? undefined : VOICE_UNSUPPORTED_HINT}
             aria-label={voice.listening ? "Stop listening" : "Start voice input"}
             aria-pressed={voice.listening}
@@ -252,7 +261,7 @@ export default function ChatSection({
           <Button
             type="submit"
             size="lg"
-            disabled={sending || !input.trim()}
+            disabled={sending || voice.listening || !input.trim()}
             aria-label="Send message"
             className="h-11 w-11 p-0"
           >
