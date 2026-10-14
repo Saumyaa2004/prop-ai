@@ -16,7 +16,8 @@ from sqlalchemy.dialects.postgresql import insert
 from app.database import SessionLocal
 from app.models import Property
 
-CRORE = 10_000_000
+# Integer math only: int(1.38 * 10_000_000) gives 13_799_999 because of
+# floating-point rounding. Write prices in lakh instead (1.38 crore = 138 lakh).
 LAKH = 100_000
 
 
@@ -63,45 +64,45 @@ DEMO_PROPERTIES: list[dict[str, Any]] = [
     _listing(
         "PAI-DEMO-001", "Lakeview Residency 2BHK", "Ready-to-move flat near Powai Lake.",
         listing_type="sale", property_type="apartment", bedrooms=2, bathrooms=2,
-        area_sqft=780, price_inr=int(1.45 * CRORE), locality="Powai",
+        area_sqft=780, price_inr=145 * LAKH, locality="Powai",
         furnishing="semi_furnished", amenities=["parking", "lift", "security", "power_backup"],
     ),
     _listing(
         "PAI-DEMO-002", "Hiranandani Gardens 2BHK", "Corner unit with a large balcony.",
         listing_type="sale", property_type="apartment", bedrooms=2, bathrooms=2,
-        area_sqft=850, price_inr=int(1.38 * CRORE), locality="Powai",
+        area_sqft=850, price_inr=138 * LAKH, locality="Powai",
         furnishing="unfurnished", amenities=["parking", "balcony", "lift", "security", "gym"],
     ),
     _listing(
         "PAI-DEMO-003", "Skyline Towers 2BHK", "Premium tower with resort-style amenities.",
         listing_type="sale", property_type="apartment", bedrooms=2, bathrooms=2,
-        area_sqft=910, price_inr=int(1.85 * CRORE), locality="Powai",
+        area_sqft=910, price_inr=185 * LAKH, locality="Powai",
         furnishing="semi_furnished",
         amenities=["parking", "balcony", "gym", "swimming_pool", "clubhouse", "lift", "security"],
     ),
     _listing(
         "PAI-DEMO-004", "Green Heights 2BHK", "Well-priced flat in an older society. No parking.",
         listing_type="sale", property_type="apartment", bedrooms=2, bathrooms=2,
-        area_sqft=760, price_inr=int(1.32 * CRORE), locality="Powai",
+        area_sqft=760, price_inr=132 * LAKH, locality="Powai",
         furnishing="unfurnished", amenities=["lift", "security"],
     ),
     _listing(
         "PAI-DEMO-005", "Lakeside Grand 3BHK", "Spacious family home with lake views.",
         listing_type="sale", property_type="apartment", bedrooms=3, bathrooms=3,
-        area_sqft=1250, price_inr=int(2.75 * CRORE), locality="Powai",
+        area_sqft=1250, price_inr=275 * LAKH, locality="Powai",
         furnishing="semi_furnished",
         amenities=["parking", "balcony", "gym", "swimming_pool", "clubhouse", "lift", "security"],
     ),
     _listing(
         "PAI-DEMO-006", "Lokhandwala Park 2BHK", "Close to Andheri West metro station.",
         listing_type="sale", property_type="apartment", bedrooms=2, bathrooms=2,
-        area_sqft=820, price_inr=int(1.49 * CRORE), locality="Andheri West",
+        area_sqft=820, price_inr=149 * LAKH, locality="Andheri West",
         furnishing="semi_furnished", amenities=["parking", "balcony", "lift", "security"],
     ),
     _listing(
         "PAI-DEMO-007", "Marol Residency 2BHK", "Near the airport and business parks.",
         listing_type="sale", property_type="apartment", bedrooms=2, bathrooms=2,
-        area_sqft=750, price_inr=int(1.28 * CRORE), locality="Andheri East",
+        area_sqft=750, price_inr=128 * LAKH, locality="Andheri East",
         furnishing="unfurnished", amenities=["parking", "lift", "security", "power_backup"],
     ),
     _listing(
@@ -113,21 +114,21 @@ DEMO_PROPERTIES: list[dict[str, Any]] = [
     _listing(
         "PAI-DEMO-009", "Carter Road Sky Penthouse", "Sea-facing duplex penthouse.",
         listing_type="sale", property_type="penthouse", bedrooms=4, bathrooms=5,
-        area_sqft=2600, price_inr=int(12.5 * CRORE), locality="Bandra West",
+        area_sqft=2600, price_inr=1250 * LAKH, locality="Bandra West",
         furnishing="fully_furnished",
         amenities=["parking", "balcony", "gym", "swimming_pool", "lift", "security", "power_backup"],
     ),
     _listing(
         "PAI-DEMO-010", "Sun Hills Villa", "Independent villa with a private garden.",
         listing_type="sale", property_type="villa", bedrooms=4, bathrooms=4,
-        area_sqft=2400, price_inr=int(4.2 * CRORE), locality="Thane West",
+        area_sqft=2400, price_inr=420 * LAKH, locality="Thane West",
         furnishing="semi_furnished", amenities=["parking", "garden", "security", "power_backup"],
         status="under_offer",
     ),
     _listing(
         "PAI-DEMO-011", "Oberoi Link 2BHK", "Recently sold; kept to test status filtering.",
         listing_type="sale", property_type="apartment", bedrooms=2, bathrooms=2,
-        area_sqft=800, price_inr=int(1.35 * CRORE), locality="Goregaon East",
+        area_sqft=800, price_inr=135 * LAKH, locality="Goregaon East",
         furnishing="unfurnished", amenities=["parking", "balcony", "lift"],
         status="sold",
     ),
