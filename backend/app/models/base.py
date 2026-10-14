@@ -18,6 +18,12 @@ NAMING_CONVENTION = {
 }
 
 
+def in_list(column: str, values: tuple[str, ...]) -> str:
+    """Build SQL for a CHECK constraint, like: listing_type IN ('sale', 'rent')"""
+    quoted = ", ".join(f"'{value}'" for value in values)
+    return f"{column} IN ({quoted})"
+
+
 class Base(DeclarativeBase):
     """Every Prop AI model inherits from this class."""
 

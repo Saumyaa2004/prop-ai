@@ -19,19 +19,13 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin
+from app.models.base import Base, TimestampMixin, in_list
 
 # Allowed values, kept in Python so API validation can reuse them later.
 LISTING_TYPES = ("sale", "rent")
 PROPERTY_TYPES = ("apartment", "villa", "independent_house", "studio", "penthouse")
 FURNISHING_TYPES = ("unfurnished", "semi_furnished", "fully_furnished")
 PROPERTY_STATUSES = ("available", "under_offer", "sold", "rented")
-
-
-def _in_list(column: str, values: tuple[str, ...]) -> str:
-    """Build SQL like: listing_type IN ('sale', 'rent')"""
-    quoted = ", ".join(f"'{value}'" for value in values)
-    return f"{column} IN ({quoted})"
 
 
 class Property(TimestampMixin, Base):
@@ -68,10 +62,10 @@ class Property(TimestampMixin, Base):
     )
 
     __table_args__ = (
-        CheckConstraint(_in_list("listing_type", LISTING_TYPES), name="listing_type_valid"),
-        CheckConstraint(_in_list("property_type", PROPERTY_TYPES), name="property_type_valid"),
-        CheckConstraint(_in_list("furnishing", FURNISHING_TYPES), name="furnishing_valid"),
-        CheckConstraint(_in_list("status", PROPERTY_STATUSES), name="status_valid"),
+        CheckConstraint(in_list("listing_type", LISTING_TYPES), name="listing_type_valid"),
+        CheckConstraint(in_list("property_type", PROPERTY_TYPES), name="property_type_valid"),
+        CheckConstraint(in_list("furnishing", FURNISHING_TYPES), name="furnishing_valid"),
+        CheckConstraint(in_list("status", PROPERTY_STATUSES), name="status_valid"),
         CheckConstraint("bedrooms >= 0", name="bedrooms_non_negative"),
         CheckConstraint("bathrooms >= 0", name="bathrooms_non_negative"),
         CheckConstraint("area_sqft > 0", name="area_positive"),
