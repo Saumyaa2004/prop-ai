@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.routers import chat, properties
+from app.routers import chat, properties, visits
 
 # The application object. Uvicorn looks for this variable by name.
 app = FastAPI(
@@ -36,6 +36,7 @@ app.add_middleware(
 # Each router adds a group of related endpoints, e.g. /properties/search.
 app.include_router(properties.router)
 app.include_router(chat.router)
+app.include_router(visits.router)
 
 
 @app.get("/health")
