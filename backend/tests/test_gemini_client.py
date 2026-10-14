@@ -13,6 +13,7 @@ from app.services.llm.base import (
     ToolCall,
     ToolCallTurn,
     ToolResultMessage,
+    ToolSpec,
     UserMessage,
 )
 from app.services.llm.gemini import GeminiClient, to_contents, to_reply
@@ -36,9 +37,11 @@ class FakeModels:
     def __init__(self, *results):
         self.results = list(results)
         self.models_called: list[str] = []
+        self.configs: list = []
 
     def generate_content(self, *, model, contents, config):
         self.models_called.append(model)
+        self.configs.append(config)
         result = self.results.pop(0)
         if isinstance(result, Exception):
             raise result
@@ -149,3 +152,21 @@ def test_error_message_never_contains_the_api_key():
     with pytest.raises(LLMError) as info:
         client.generate("system", [UserMessage("hi")], [])
     assert "SECRET-KEY-123" not in str(info.value)
+
+
+# ---------- tools block ----------
+
+
+def test_no_tools_block_when_tool_list_is_empty():
+    # The eval judge calls Gemini without tools; an empty function list may be rejected.
+    client, models = make_client(text_response("ok"))
+    client.generate("sys", [UserMessage("hi")], [])
+    assert models.configs[0].tools is None
+
+
+def test_tools_block_sent_when_tools_given():
+    client, models = make_client(text_response("ok"))
+    tool = ToolSpec(name="search_properties", description="d", parameters={"type": "object"})
+    client.generate("sys", [UserMessage("hi")], [tool])
+    declarations = models.configs[0].tools[0].function_declarations
+    assert [d.name for d in declarations] == ["search_properties"]

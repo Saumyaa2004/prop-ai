@@ -96,7 +96,10 @@ class GeminiClient:
                         for t in tools
                     ]
                 )
-            ],
+            ]
+            # No tools (e.g. the eval judge): send no block, not an empty one.
+            if tools
+            else None,
             # We run tools ourselves, so we can validate arguments and cap steps.
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
