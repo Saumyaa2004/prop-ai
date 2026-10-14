@@ -71,7 +71,7 @@ Agent (`app/services/agent.py`):
 
 - Tools `check_visit_slots(listing_code, date?)` and `propose_visit(listing_code,
   starts_at)`. Both read-only. Without a date, `check_visit_slots` returns the next 8
-  free slots. Slot labels are pre-formatted ("Sat 18 Oct, 11:00") so the model quotes,
+  free slots. Slot labels are pre-formatted ("Sun 18 Oct, 11:00") so the model quotes,
   not computes.
 - A successful `propose_visit` sets `visit_proposal` on the result; `ChatResponse`
   gains `visit_proposal: {listing_code, title, starts_at, label} | null`, taken from
