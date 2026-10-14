@@ -5,6 +5,7 @@ Stateless for now: the client sends the conversation so far on every request.
 Limits protect the free LLM quota and keep prompts small.
 """
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -31,8 +32,18 @@ class ChatRequest(BaseModel):
         return self
 
 
+class VisitProposalRead(BaseModel):
+    """A slot the agent proposed. Nothing is booked until the user confirms."""
+
+    listing_code: str
+    title: str
+    starts_at: datetime
+    label: str
+
+
 class ChatResponse(BaseModel):
-    """`listings` come from tool results only, never from the model's text."""
+    """`listings` and `visit_proposal` come from tool results only, never from the model's text."""
 
     reply: str
     listings: list[PropertyRead]
+    visit_proposal: VisitProposalRead | None = None

@@ -14,8 +14,10 @@ class FakeLLM:
         self._repeat_last = repeat_last
         self.calls: list[list[Message]] = []  # history snapshot per generate()
         self.tools_seen: list[list[ToolSpec]] = []
+        self.systems: list[str] = []  # system prompt per generate()
 
     def generate(self, system: str, history: list[Message], tools: list[ToolSpec]) -> LLMReply:
+        self.systems.append(system)
         self.calls.append(list(history))
         self.tools_seen.append(tools)
         if not self._replies:

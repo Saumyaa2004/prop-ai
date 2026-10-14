@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.chat import ChatRequest, ChatResponse, VisitProposalRead
 from app.services.agent import run_agent
 from app.services.llm.base import (
     AssistantMessage,
@@ -61,4 +61,9 @@ def chat(
             status_code=503,
             detail="The AI assistant is temporarily unavailable. Please try again.",
         ) from exc
-    return ChatResponse(reply=result.reply, listings=result.listings)
+    proposal = result.visit_proposal
+    return ChatResponse(
+        reply=result.reply,
+        listings=result.listings,
+        visit_proposal=VisitProposalRead(**vars(proposal)) if proposal else None,
+    )

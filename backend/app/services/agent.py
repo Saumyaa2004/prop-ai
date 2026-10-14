@@ -1,13 +1,15 @@
 """
 Prop AI - the AI agent.
 
-The model never touches the database. It can only ask for two tools, which
-wrap the same tested services as the HTTP API. Every argument is validated by
-the same Pydantic schema the API uses, and listings shown to users come from
-tool results, never from the model's text.
+The model never touches the database. It can only ask for read-only tools,
+which wrap the same tested services as the HTTP API. Listings and visit
+proposals shown to users come from tool results, never from the model's text.
+The agent can propose a site visit but cannot book one: a person confirms on
+a card, and the browser calls POST /visits directly.
 """
 
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import ValidationError
@@ -23,9 +25,19 @@ from app.services.llm.base import (
     ToolCallTurn,
     ToolResultMessage,
     ToolSpec,
+    UserMessage,
 )
+from app.services.privacy import redact_phone_numbers
 from app.services.property_details import get_property_by_code
 from app.services.property_search import search_properties
+from app.services.visits import (
+    IST,
+    VisitError,
+    available_slots,
+    check_slot,
+    parse_slot,
+    slot_label,
+)
 
 MAX_STEPS = 4  # model turns per user message; stops a confused model looping
 CHAT_RESULT_LIMIT = 5
@@ -46,7 +58,10 @@ Rules:
    with title, price label and one or two key facts. Never mention listing codes
    (like PAI-DEMO-002) to the user; they are internal IDs for your tools. If the
    user asks about a listing from earlier, search again to find its code.
-6. You cannot book visits or save details yet; say that this is coming soon.
+6. To book a site visit, find a free slot with check_visit_slots, then call
+   propose_visit. The app then shows a card where the user enters their name and
+   phone and taps Confirm. You cannot save bookings yourself. Never ask for a
+   name or phone number. Quote slot times exactly as their `label`.
 7. Write plain text only: no markdown, no ** or #. For lists, start lines with "- ".
    The app shows listing cards with full details under your reply."""
 
@@ -98,7 +113,51 @@ DETAILS_TOOL = ToolSpec(
     },
 )
 
-TOOLS = [SEARCH_TOOL, DETAILS_TOOL]
+SLOTS_TOOL = ToolSpec(
+    name="check_visit_slots",
+    description=(
+        "Free site-visit slots for one listing (hourly, 10:00-17:00 IST, next 14 days). "
+        "With a date: that day's free slots. Without: the next 8 free slots."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "listing_code": {"type": "string"},
+            "date": {"type": "string", "description": "YYYY-MM-DD"},
+        },
+        "required": ["listing_code"],
+    },
+)
+
+PROPOSE_TOOL = ToolSpec(
+    name="propose_visit",
+    description=(
+        "Propose one visit slot to the user. Does NOT book: the app shows a card "
+        "where the user enters name and phone and taps Confirm."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "listing_code": {"type": "string"},
+            "starts_at": {"type": "string", "description": "YYYY-MM-DDTHH:MM in IST"},
+        },
+        "required": ["listing_code", "starts_at"],
+    },
+)
+
+# Read-only on purpose: no tool writes. Bookings need a person's click.
+TOOLS = [SEARCH_TOOL, DETAILS_TOOL, SLOTS_TOOL, PROPOSE_TOOL]
+SLOTS_WITHOUT_DATE = 8
+
+
+@dataclass(frozen=True)
+class VisitProposal:
+    """A slot the agent suggests; the user confirms it on a card in the app."""
+
+    listing_code: str
+    title: str
+    starts_at: datetime
+    label: str
 
 
 @dataclass
@@ -106,6 +165,7 @@ class AgentResult:
     reply: str
     listings: list[Property] = field(default_factory=list)
     tool_calls: list[ToolCall] = field(default_factory=list)
+    visit_proposal: VisitProposal | None = None
 
 
 def _summary(p: Property) -> dict[str, Any]:
@@ -133,7 +193,13 @@ def _validation_message(exc: ValidationError) -> str:
     return "Invalid arguments. " + "; ".join(reasons)
 
 
-def run_tool(db: Session, call: ToolCall) -> tuple[dict[str, Any], list[Property]]:
+def _slot(starts_at: datetime) -> dict[str, str]:
+    return {"starts_at": starts_at.isoformat(), "label": slot_label(starts_at)}
+
+
+def run_tool(
+    db: Session, call: ToolCall, now: datetime | None = None
+) -> tuple[dict[str, Any], list[Property]]:
     """Execute one tool call. Returns (result for the model, listings found)."""
     if call.name == SEARCH_TOOL.name:
         args = {"limit": CHAT_RESULT_LIMIT, **call.args}
@@ -154,32 +220,81 @@ def run_tool(db: Session, call: ToolCall) -> tuple[dict[str, Any], list[Property
                 "bathrooms": listing.bathrooms,
                 "available_from": str(listing.available_from or "not specified")}, [listing]
 
+    if call.name in (SLOTS_TOOL.name, PROPOSE_TOOL.name):
+        code = str(call.args.get("listing_code", "")).strip()
+        try:
+            if call.name == SLOTS_TOOL.name:
+                raw_day = call.args.get("date")
+                day = date.fromisoformat(str(raw_day)) if raw_day else None
+                slots = available_slots(db, code, day, now)
+                if day is None:
+                    slots = slots[:SLOTS_WITHOUT_DATE]
+                listing = get_property_by_code(db, code)
+                return {"listing_code": listing.listing_code, "title": listing.title,
+                        "slots": [_slot(s) for s in slots]}, []
+
+            starts_at = parse_slot(str(call.args.get("starts_at", "")))
+            listing = check_slot(db, code, starts_at, now)
+            proposal = {"listing_code": listing.listing_code, "title": listing.title,
+                        **_slot(starts_at)}
+            return {"proposal": proposal,
+                    "note": "Not booked yet. Tell the user to enter their name and "
+                            "phone on the card and tap Confirm."}, []
+        except VisitError as exc:
+            return {"error": str(exc)}, []
+        except ValueError:
+            return {"error": "Dates must look like 2026-10-18."}, []
+
     return {"error": f"Unknown tool {call.name}."}, []
 
 
-def run_agent(db: Session, history: list[Message], llm: LLMClient) -> AgentResult:
+def system_prompt(now: datetime) -> str:
+    """The model doesn't know today's date; without it, "Saturday" means nothing."""
+    today = now.astimezone(IST)
+    return f"{SYSTEM_PROMPT}\n\nToday is {today:%A} {today.day} {today:%b %Y} (IST)."
+
+
+def run_agent(
+    db: Session, history: list[Message], llm: LLMClient, now: datetime | None = None
+) -> AgentResult:
     """Answer the latest user message, calling tools as the model requests."""
-    messages = list(history)
+    now = now or datetime.now(IST)
+    system = system_prompt(now)
+    # Phone numbers typed into the chat never leave our server.
+    messages: list[Message] = [
+        UserMessage(redact_phone_numbers(m.text)) if isinstance(m, UserMessage) else m
+        for m in history
+    ]
     listings: dict[str, Property] = {}  # insertion-ordered, de-duplicated
     calls_made: list[ToolCall] = []
+    proposal: VisitProposal | None = None
 
     for _ in range(MAX_STEPS):
-        reply = llm.generate(SYSTEM_PROMPT, messages, TOOLS)
+        reply = llm.generate(system, messages, TOOLS)
 
         if not reply.tool_calls:
             text = reply.text or "Sorry, I couldn't come up with an answer. Please rephrase."
-            return AgentResult(text, list(listings.values()), calls_made)
+            return AgentResult(text, list(listings.values()), calls_made, proposal)
 
         messages.append(ToolCallTurn(reply))
         for call in reply.tool_calls:
             calls_made.append(call)
-            result, found = run_tool(db, call)
+            result, found = run_tool(db, call, now)
             for p in found:
                 listings.setdefault(p.listing_code, p)
+            if "proposal" in result:  # from the tool result, never from the model's text
+                offer = result["proposal"]
+                proposal = VisitProposal(
+                    offer["listing_code"],
+                    offer["title"],
+                    datetime.fromisoformat(offer["starts_at"]),
+                    offer["label"],
+                )
             messages.append(ToolResultMessage(call, result))
 
     return AgentResult(
         "Sorry, that took too many steps. Could you rephrase or narrow your request?",
         list(listings.values()),
         calls_made,
+        proposal,
     )
