@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, buildSearchQuery, getProperty, searchProperties } from "@/lib/api";
+import { ApiError, buildSearchQuery, getProperty, searchProperties, sendChat } from "@/lib/api";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -130,5 +130,42 @@ describe("getProperty", () => {
       status: 404,
       message: "Property not found",
     });
+  });
+});
+
+describe("sendChat", () => {
+  it("posts the conversation as JSON", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ reply: "Hi", listings: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    const messages = [{ role: "user" as const, content: "flats in Powai" }];
+
+    const result = await sendChat(messages);
+
+    expect(result.reply).toBe("Hi");
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(new URL(url).pathname).toBe("/chat");
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({ "Content-Type": "application/json" });
+    expect(JSON.parse(init.body)).toEqual({ messages });
+  });
+
+  it("passes the backend's 503 message through to the user", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({ detail: "The AI assistant is temporarily unavailable. Please try again." }, 503)
+      )
+    );
+
+    await expect(sendChat([{ role: "user", content: "hi" }])).rejects.toMatchObject({
+      status: 503,
+      message: "The AI assistant is temporarily unavailable. Please try again.",
+    });
+  });
+
+  it("reports an unreachable backend as status 0", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    await expect(sendChat([{ role: "user", content: "hi" }])).rejects.toMatchObject({ status: 0 });
   });
 });

@@ -1,13 +1,9 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
-import { BedDouble, CalendarDays, MapPin, Ruler, ServerCrash, SearchX } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import PropertyDetailsDialog from "@/components/PropertyDetailsDialog";
+import { ServerCrash, SearchX } from "lucide-react";
+import ListingCard from "@/components/ListingCard";
 import { usePropertySearch } from "@/hooks/usePropertySearch";
-import type { ListingType, Property, SearchFilters } from "@/lib/api";
-import { formatDate, formatPrice, humanize } from "@/lib/format";
-import { listingFromUrl, withListing } from "@/lib/url";
+import type { ListingType, SearchFilters } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // Localities present in the demo seed data. (No API endpoint lists them yet.)
@@ -56,74 +52,6 @@ function FilterField({ label, children }: { label: string; children: ReactNode }
   );
 }
 
-function ListingCard({
-  listing,
-  onOpen,
-}: {
-  listing: Property;
-  onOpen: (button: HTMLButtonElement) => void;
-}) {
-  return (
-    <Card className="relative border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25 has-[button:focus-visible]:border-white/50">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <p className="font-mono text-xs text-white/40">{listing.listing_code}</p>
-          <Badge className="border border-white/15 bg-white/5 text-[10px] text-white/50">
-            Demo
-          </Badge>
-        </div>
-        <CardTitle className="text-base text-white">
-          {/* "Stretched button": the ::after layer makes the whole card clickable
-              while screen readers still announce just the title as the button. */}
-          <button
-            type="button"
-            onClick={(e) => onOpen(e.currentTarget)}
-            className="text-left outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']"
-          >
-            {listing.title}
-          </button>
-        </CardTitle>
-        <p className="text-xl font-semibold text-white">
-          {formatPrice(listing.price_inr, listing.listing_type)}
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm text-white/60">
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-          <span className="flex items-center gap-1.5">
-            <MapPin className="size-4" aria-hidden="true" />
-            {listing.locality}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <BedDouble className="size-4" aria-hidden="true" />
-            {listing.bedrooms === 0 ? "Studio" : `${listing.bedrooms} BHK`}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Ruler className="size-4" aria-hidden="true" />
-            {listing.area_sqft} sq ft
-          </span>
-          {listing.available_from && (
-            <span className="flex items-center gap-1.5">
-              <CalendarDays className="size-4" aria-hidden="true" />
-              From {formatDate(listing.available_from, { year: false })}
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-white/45">{humanize(listing.furnishing)}</p>
-        <ul className="flex flex-wrap gap-1.5" aria-label="Amenities">
-          {listing.amenities.map((amenity) => (
-            <li
-              key={amenity}
-              className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/70"
-            >
-              {humanize(amenity)}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
-  );
-}
-
 function SkeletonCard() {
   return (
     <div className="h-56 animate-pulse rounded-xl border border-white/10 bg-white/[0.03]" />
@@ -140,7 +68,11 @@ function Message({ icon, title, body }: { icon: ReactNode; title: string; body: 
   );
 }
 
-export default function ListingsSection() {
+export default function ListingsSection({
+  onOpenListing,
+}: {
+  onOpenListing: (code: string, button: HTMLButtonElement) => void;
+}) {
   const [listingType, setListingType] = useState<ListingType>("sale");
   const [locality, setLocality] = useState("");
   const [bedrooms, setBedrooms] = useState("");
@@ -153,22 +85,6 @@ export default function ListingsSection() {
     max_price: maxPrice === "" ? undefined : Number(maxPrice),
   };
   const { data, error, loading } = usePropertySearch(filters);
-
-  // Which listing's details are open. Starts from the URL so shared links work.
-  const [selectedCode, setSelectedCode] = useState<string | null>(() =>
-    listingFromUrl(window.location.href)
-  );
-
-  // The card button that opened the dialog, so focus can return to it on close
-  // (Safari doesn't focus buttons on click, so we can't rely on the browser).
-  // A ref, not state: it never affects what is rendered.
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-
-  const openListing = (code: string | null) => {
-    setSelectedCode(code);
-    // Update the address bar without a reload or a new Back-button entry.
-    window.history.replaceState(null, "", withListing(window.location.href, code));
-  };
 
   const changeListingType = (next: ListingType) => {
     setListingType(next);
@@ -299,20 +215,11 @@ export default function ListingsSection() {
             <ListingCard
               key={listing.listing_code}
               listing={listing}
-              onOpen={(button) => {
-                returnFocusRef.current = button;
-                openListing(listing.listing_code);
-              }}
+              onOpen={(button) => onOpenListing(listing.listing_code, button)}
             />
           ))}
         </div>
       )}
-
-      <PropertyDetailsDialog
-        code={selectedCode}
-        onClose={() => openListing(null)}
-        returnFocusRef={returnFocusRef}
-      />
     </section>
   );
 }

@@ -46,11 +46,26 @@ def test_preflight_from_other_origin_is_rejected(client):
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_preflight_for_write_methods_is_rejected(client):
-    # The API is read-only for now; POST is not allowed cross-origin.
+def test_preflight_for_json_post_is_allowed(client):
+    # The chat UI sends POST /chat with a JSON body.
+    response = client.options(
+        "/chat",
+        headers={
+            "Origin": ALLOWED,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == ALLOWED
+
+
+def test_preflight_for_delete_is_rejected(client):
+    # Only GET and POST are allowed cross-origin; other writes stay blocked.
     response = client.options(
         "/properties/search",
-        headers={"Origin": ALLOWED, "Access-Control-Request-Method": "POST"},
+        headers={"Origin": ALLOWED, "Access-Control-Request-Method": "DELETE"},
     )
 
     assert response.status_code == 400

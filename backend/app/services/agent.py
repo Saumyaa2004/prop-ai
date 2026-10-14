@@ -44,7 +44,9 @@ Rules:
    "50k" = 50000. A rent budget is per month.
 5. Keep answers short: a one-line summary, then the listings as a brief list
    with code, title, price label and one or two key facts.
-6. You cannot book visits or save details yet; say that this is coming soon."""
+6. You cannot book visits or save details yet; say that this is coming soon.
+7. Write plain text only: no markdown, no ** or #. For lists, start lines with "- ".
+   The app shows listing cards with full details under your reply."""
 
 SEARCH_TOOL = ToolSpec(
     name="search_properties",

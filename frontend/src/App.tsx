@@ -18,7 +18,10 @@ import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ChatSection from "@/components/ChatSection";
 import ListingsSection from "@/components/ListingsSection";
+import PropertyDetailsDialog from "@/components/PropertyDetailsDialog";
+import { useListingDialog } from "@/hooks/useListingDialog";
 import { roadmap } from "@/data/roadmap";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -75,8 +78,8 @@ const FEATURES: Feature[] = [
   {
     icon: Bot,
     title: "AI agent with real tools",
-    body: "The assistant will answer by calling the same tested backend functions. It never writes SQL or invents facts.",
-    live: false,
+    body: "The assistant answers by calling the same tested backend functions. It never writes SQL or invents listings.",
+    live: true,
   },
   {
     icon: Mic,
@@ -109,6 +112,9 @@ function NavBar() {
         <div className="hidden items-center gap-8 text-sm text-white/70 md:flex">
           <a href="#search" className="transition-colors hover:text-white">
             How it works
+          </a>
+          <a href="#chat" className="transition-colors hover:text-white">
+            Ask AI
           </a>
           <a href="#listings" className="transition-colors hover:text-white">
             Listings
@@ -176,8 +182,8 @@ function Hero() {
         </div>
         <dl className="mt-10 grid max-w-md grid-cols-3 gap-6 border-t border-white/10 pt-6">
           {[
-            ["2", "live API endpoints"],
-            ["31", "passing tests"],
+            ["3", "live API endpoints"],
+            ["105", "passing tests"],
             ["17", "demo listings"],
           ].map(([value, label]) => (
             <div key={label}>
@@ -214,8 +220,8 @@ function SearchShowcase() {
           From a sentence to exact matches
         </h2>
         <p className="mt-4 text-white/60">
-          The AI agent (next phase) will turn what you say into structured filters.
-          The search behind it is already live; this is its real output.
+          The AI assistant turns what you say into structured filters, then answers
+          from the search results. This is the search's real output for that sentence.
         </p>
       </div>
 
@@ -368,6 +374,9 @@ function Footer() {
 }
 
 export default function App() {
+  // One details dialog for the whole page, opened from chat or listing cards.
+  const dialog = useListingDialog();
+
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white">
       {/* Soft background glows, purely decorative. */}
@@ -380,11 +389,17 @@ export default function App() {
         <main>
           <Hero />
           <SearchShowcase />
-          <ListingsSection />
+          <ChatSection onOpenListing={dialog.open} />
+          <ListingsSection onOpenListing={dialog.open} />
           <Features />
         </main>
         <Footer />
       </div>
+      <PropertyDetailsDialog
+        code={dialog.code}
+        onClose={dialog.close}
+        returnFocusRef={dialog.returnFocusRef}
+      />
     </div>
   );
 }

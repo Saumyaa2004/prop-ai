@@ -94,11 +94,11 @@ async function errorFromResponse(response: Response): Promise<ApiError> {
 
 type RequestOptions = { signal?: AbortSignal };
 
-/** Shared GET logic: one place for network errors, status checks and JSON. */
-async function getJson<T>(path: string, options: RequestOptions): Promise<T> {
+/** Shared request logic: one place for network errors, status checks and JSON. */
+async function request<T>(path: string, init: RequestInit, options: RequestOptions): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, { signal: options.signal });
+    response = await fetch(`${API_BASE_URL}${path}`, { ...init, signal: options.signal });
   } catch (error) {
     // A cancelled request is expected (inputs changed); let the caller ignore it.
     if (options.signal?.aborted) throw error;
@@ -114,11 +114,39 @@ export function searchProperties(
   filters: SearchFilters,
   options: RequestOptions = {}
 ): Promise<SearchResponse> {
-  return getJson(`/properties/search?${buildSearchQuery(filters)}`, options);
+  return request(`/properties/search?${buildSearchQuery(filters)}`, {}, options);
 }
 
 /** One listing by code, any status. Rejects with ApiError status 404 if unknown. */
 export function getProperty(listingCode: string, options: RequestOptions = {}): Promise<Property> {
   // Encode: the code becomes part of the URL path, so "../health" must stay text.
-  return getJson(`/properties/${encodeURIComponent(listingCode)}`, options);
+  return request(`/properties/${encodeURIComponent(listingCode)}`, {}, options);
+}
+
+/** Mirrors backend ChatMessage. */
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Mirrors backend ChatResponse. `listings` come from tool results, not the model's text. */
+export interface ChatResponse {
+  reply: string;
+  listings: Property[];
+}
+
+/** Ask the AI agent. Send the conversation so far; the last message must be the user's. */
+export function sendChat(
+  messages: ChatMessage[],
+  options: RequestOptions = {}
+): Promise<ChatResponse> {
+  return request(
+    "/chat",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages }),
+    },
+    options
+  );
 }

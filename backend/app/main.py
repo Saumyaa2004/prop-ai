@@ -21,13 +21,15 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Let the frontend (a different origin, e.g. localhost:5173) read API responses.
-# Exact origins only, never "*". GET only while the API is read-only, and no
-# cookies until there is authentication.
+# Let the frontend (a different origin, e.g. localhost:5173) call the API.
+# Exact origins only, never "*". GET for reads, POST + JSON for /chat (a JSON
+# POST triggers a browser preflight, hence allow_headers). No cookies until
+# there is authentication.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
     allow_credentials=False,
 )
 
