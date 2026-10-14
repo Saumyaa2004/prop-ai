@@ -59,7 +59,8 @@ class BookedVisit:
     status: str
 
 
-_PHONE = re.compile(r"(?:\+?91|0)?([6-9]\d{9})")
+# [0-9], not \d: Python's \d also matches non-ASCII digits.
+_PHONE = re.compile(r"(?:\+?91|0)?([6-9][0-9]{9})")
 
 
 def normalise_phone(raw: str) -> str | None:

@@ -39,7 +39,9 @@ from app.services.visits import (
     slot_label,
 )
 
-MAX_STEPS = 4  # model turns per user message; stops a confused model looping
+# Model turns per user message; stops a confused model looping. Booking needs
+# search -> slots -> propose -> answer, plus room for one retry.
+MAX_STEPS = 6
 CHAT_RESULT_LIMIT = 5
 
 SYSTEM_PROMPT = """You are Prop AI, a friendly real estate assistant for Mumbai.
@@ -290,6 +292,8 @@ def run_agent(
                     datetime.fromisoformat(offer["starts_at"]),
                     offer["label"],
                 )
+            elif call.name == PROPOSE_TOOL.name:
+                proposal = None  # the latest proposal failed; a stale card would contradict the reply
             messages.append(ToolResultMessage(call, result))
 
     return AgentResult(

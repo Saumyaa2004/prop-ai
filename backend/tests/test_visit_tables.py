@@ -14,7 +14,8 @@ from sqlalchemy.exc import IntegrityError
 from app.models import Lead, Property, SiteVisit
 
 IST = timezone(timedelta(hours=5, minutes=30))
-SLOT = datetime(2026, 10, 18, 11, tzinfo=IST)
+# January 2026: before this feature existed, so no real booking can clash.
+SLOT = datetime(2026, 1, 11, 11, tzinfo=IST)
 
 
 def make_lead(db, phone="+919000000001") -> Lead:

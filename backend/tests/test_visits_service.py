@@ -1,8 +1,10 @@
 """
 Tests for the site visit booking service.
 
-A fixed NOW keeps slot tests deterministic. Write tests use tx_db (rolled
-back); only the race test commits, and it deletes its own rows.
+A fixed NOW keeps slot tests deterministic. It is in January 2026, before
+this feature existed: real bookings are always in the future, so none can
+ever fall in the test window. Write tests use tx_db (rolled back); only the
+race test commits, and it deletes its own rows.
 """
 
 import threading
@@ -29,8 +31,8 @@ from app.services.visits import (
     slot_label,
 )
 
-NOW = datetime(2026, 10, 14, 9, 15, tzinfo=IST)  # Wednesday morning
-SLOT = datetime(2026, 10, 18, 11, tzinfo=IST)  # Sunday 11:00
+NOW = datetime(2026, 1, 7, 9, 15, tzinfo=IST)  # Wednesday morning
+SLOT = datetime(2026, 1, 11, 11, tzinfo=IST)  # Sunday 11:00
 CODE = "PAI-DEMO-002"  # available
 SOLD = "PAI-DEMO-011"
 
@@ -47,10 +49,12 @@ def test_normalise_phone():
         assert normalise_phone(raw) == "+919876543210"
     for raw in ("12345 67890", "98765", "abc", ""):
         assert normalise_phone(raw) is None
+    # Non-ASCII digits (here Devanagari) would make a second lead for one number.
+    assert normalise_phone("9८७६५४३२१०") is None
 
 
 def test_parse_slot_accepts_naive_offset_and_utc():
-    for value in ("2026-10-18T11:00", "2026-10-18T11:00+05:30", "2026-10-18T05:30:00Z"):
+    for value in ("2026-01-11T11:00", "2026-01-11T11:00+05:30", "2026-01-11T05:30:00Z"):
         assert parse_slot(value) == SLOT
         assert parse_slot(value).utcoffset() == IST.utcoffset(None)
     with pytest.raises(InvalidSlot):
@@ -58,7 +62,7 @@ def test_parse_slot_accepts_naive_offset_and_utc():
 
 
 def test_slot_label():
-    assert slot_label(SLOT) == "Sun 18 Oct, 11:00"
+    assert slot_label(SLOT) == "Sun 11 Jan, 11:00"
     assert slot_label(datetime(2026, 11, 8, 10, tzinfo=IST)) == "Sun 8 Nov, 10:00"
 
 
@@ -67,18 +71,16 @@ def test_slot_label():
 
 def test_available_slots_window_and_hours(db):
     slots = available_slots(db, CODE, now=NOW)
-    assert slots[0] == datetime(2026, 10, 14, 10, tzinfo=IST)
+    assert slots[0] == datetime(2026, 1, 7, 10, tzinfo=IST)
     assert {s.hour for s in slots} == set(range(10, 18))
-    assert slots[-1].date() == date(2026, 10, 27)
-    # Real bookings in the dev database could hide a few; never more than all.
-    assert len(slots) <= BOOKING_DAYS * 8
-    assert len(slots) >= BOOKING_DAYS * 8 - 5
+    assert slots[-1].date() == date(2026, 1, 20)
+    assert len(slots) == BOOKING_DAYS * 8
 
 
 def test_slot_starting_now_is_not_offered(db):
-    at_ten = available_slots(db, CODE, day=date(2026, 10, 14), now=NOW.replace(hour=10, minute=0))
+    at_ten = available_slots(db, CODE, day=date(2026, 1, 7), now=NOW.replace(hour=10, minute=0))
     assert at_ten[0].hour == 11
-    late = available_slots(db, CODE, day=date(2026, 10, 14), now=NOW.replace(hour=17, minute=30))
+    late = available_slots(db, CODE, day=date(2026, 1, 7), now=NOW.replace(hour=17, minute=30))
     assert late == []
 
 
@@ -88,7 +90,7 @@ def test_booked_slot_is_not_offered(tx_db):
 
 
 def test_day_outside_window_is_rejected(db):
-    for day in (date(2026, 10, 13), date(2026, 10, 28)):
+    for day in (date(2026, 1, 6), date(2026, 1, 21)):
         with pytest.raises(InvalidSlot):
             available_slots(db, CODE, day=day, now=NOW)
 
@@ -130,8 +132,8 @@ def test_invalid_slot_and_details(tx_db):
     bad_slots = (
         SLOT.replace(minute=30),
         SLOT.replace(hour=9),
-        datetime(2026, 10, 14, 9, tzinfo=IST),  # before NOW
-        datetime(2026, 10, 28, 11, tzinfo=IST),  # beyond 14 days
+        datetime(2026, 1, 7, 9, tzinfo=IST),  # before NOW
+        datetime(2026, 1, 21, 11, tzinfo=IST),  # beyond 14 days
     )
     for bad in bad_slots:
         with pytest.raises(InvalidSlot):
