@@ -17,8 +17,11 @@ Last updated: 2026-10-14
 - [x] `frontend/`: Vite 8 + React 19 + TypeScript 6, Tailwind v4, shadcn (base-nova)
 - [x] Landing page: hero, roadmap orbit (`radial-orbital-timeline`), search showcase, features
       — static content; `npm run build` + lint pass; checked at 1440px and 390px
-- [ ] API client + live listings page (calls `/properties/search`; needs CORS in FastAPI)
-- [ ] Filters, listing details view, CRM views
+- [x] CORS in FastAPI (exact origins from settings, GET only; 5 tests → 36 backend tests)
+- [x] API client (`lib/api.ts`), price formatting, `usePropertySearch` hook — 14 Vitest tests
+- [x] Live listings section: Buy/Rent, locality, bedrooms, budget (resets on Buy↔Rent);
+      loading / error / empty / results checked against the running API
+- [ ] Listing details view, CRM views
 
 ## Phases 3–7
 Not started: text AI agent, CRM actions, voice, reliability, deploy.
@@ -29,10 +32,12 @@ Not started: text AI agent, CRM actions, voice, reliability, deploy.
 - City/locality matching uses `lower(...)`, which bypasses `ix_properties_search`; fine at demo scale.
 - Fixed 2026-10-14: PAI-DEMO-002 was seeded at ₹1,37,99,999 due to float math; seed now uses integer lakh values and the row was corrected.
 
-- Frontend has no automated tests yet; the orbit's click/keyboard expansion was not
-  verified in a browser by Claude (headless screenshots only).
+- Frontend unit tests cover the API client and formatting only; no component tests yet.
+  The orbit's click/keyboard expansion was not verified in a real browser by Claude.
+- Locality options in the listings filter are hard-coded to the seed data (no API for them).
+- CORS allows only `http://localhost:5173`; `vite preview` (port 4173) is blocked by design.
 - Keep `frontend/src/data/roadmap.ts` and the landing-page stats in sync with this file.
 
 ## Run tests
 From `backend\`: `.\.venv\Scripts\python.exe -m pytest -v`
-From `frontend\`: `npm run build` (type-check + bundle) and `npm run lint`
+From `frontend\`: `npm test`, `npm run build` (type-check + bundle) and `npm run lint`

@@ -18,7 +18,9 @@ import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ListingsSection from "@/components/ListingsSection";
 import { roadmap } from "@/data/roadmap";
+import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const GITHUB_URL = "https://github.com/Saumyaa2004/prop-ai";
@@ -49,11 +51,6 @@ const SAMPLE_RESULTS = [
     bedrooms: 2,
   },
 ];
-
-/** 13_800_000 -> "₹1.38 Cr". Display only; the API always uses whole rupees. */
-function formatCrore(priceInr: number): string {
-  return `₹${(priceInr / 10_000_000).toFixed(2)} Cr`;
-}
 
 type Feature = {
   icon: LucideIcon;
@@ -112,6 +109,9 @@ function NavBar() {
         <div className="hidden items-center gap-8 text-sm text-white/70 md:flex">
           <a href="#search" className="transition-colors hover:text-white">
             How it works
+          </a>
+          <a href="#listings" className="transition-colors hover:text-white">
+            Listings
           </a>
           <a href="#features" className="transition-colors hover:text-white">
             Features
@@ -257,7 +257,7 @@ function SearchShowcase() {
                     <CardTitle className="mt-1 text-lg text-white">{listing.title}</CardTitle>
                   </div>
                   <p className="text-xl font-semibold whitespace-nowrap text-white">
-                    {formatCrore(listing.priceInr)}
+                    {formatPrice(listing.priceInr, "sale")}
                   </p>
                 </div>
               </CardHeader>
@@ -380,6 +380,7 @@ export default function App() {
         <main>
           <Hero />
           <SearchShowcase />
+          <ListingsSection />
           <Features />
         </main>
         <Footer />

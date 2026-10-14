@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     app_env: str = "development"
     database_url: str  # no default: the app must refuse to start without it
 
+    # Browser origins allowed to call the API (scheme + host + port, exact match).
+    # In .env, write JSON: CORS_ORIGINS=["http://localhost:5173"]
+    cors_origins: list[str] = ["http://localhost:5173"]
+
 
 @lru_cache
 def get_settings() -> Settings:
