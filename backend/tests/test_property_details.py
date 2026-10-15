@@ -82,3 +82,42 @@ def test_search_route_is_not_captured_as_a_listing_code(client):
 def test_service_returns_listing_or_none(db):
     assert get_property_by_code(db, "PAI-DEMO-014").title == "IIT Gate Studio Rental"
     assert get_property_by_code(db, "PAI-DEMO-999") is None
+
+
+# ---------- find by name (for the AI agent) ----------
+
+
+def titles(found) -> list[str]:
+    return [p.title for p in found]
+
+
+def test_find_by_name_exact_and_partial(db):
+    from app.services.property_details import find_listings_by_name
+
+    assert titles(find_listings_by_name(db, "Hiranandani Gardens 2BHK")) == ["Hiranandani Gardens 2BHK"]
+    assert titles(find_listings_by_name(db, "hiranandani gardens")) == ["Hiranandani Gardens 2BHK"]
+
+
+def test_find_by_name_ignores_filler_and_accepts_the_locality(db):
+    from app.services.property_details import find_listings_by_name
+
+    # People add words the title doesn't have: "the", "flat", "in Powai".
+    found = find_listings_by_name(db, "the Lakeview Residency flat in Powai")
+    assert titles(found) == ["Lakeview Residency 2BHK"]
+
+
+def test_find_by_name_returns_any_status(db):
+    from app.services.property_details import find_listings_by_name
+
+    # Search hides these; a buyer asking about them deserves "it's sold".
+    assert [p.status for p in find_listings_by_name(db, "Oberoi Link")] == ["sold"]
+    assert [p.status for p in find_listings_by_name(db, "Sun Hills Villa")] == ["under_offer"]
+    assert [p.status for p in find_listings_by_name(db, "Chembur Greens 2BHK")] == ["rented"]
+
+
+def test_find_by_name_unknown_or_empty(db):
+    from app.services.property_details import find_listings_by_name
+
+    assert find_listings_by_name(db, "Antilia") == []
+    assert find_listings_by_name(db, "   ") == []
+    assert find_listings_by_name(db, "the flat in") == []  # only filler words

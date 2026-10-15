@@ -28,7 +28,7 @@ from app.services.llm.base import (
     UserMessage,
 )
 from app.services.privacy import redact_phone_numbers
-from app.services.property_details import get_property_by_code
+from app.services.property_details import find_listings_by_name, get_property_by_code
 from app.services.property_search import search_properties
 from app.services.visits import (
     IST,
@@ -52,20 +52,30 @@ Rules:
    results. Never invent listings, prices or details. If a tool returns nothing,
    say so and suggest widening the search.
 2. Before searching, you must know whether the user wants to BUY or RENT. If it
-   is unclear, ask. Never guess: sale prices are totals, rent is monthly.
+   is unclear, ask first and do not search yet; never search both to hedge.
+   Never guess: sale prices are totals, rent is monthly. Exception: when the user
+   names a specific listing, look it up with find_listing; no need to ask.
 3. Quote prices exactly as the `price_label` in tool results.
 4. Convert budgets to whole rupees: 1 crore = 10000000, 1 lakh = 100000,
    "50k" = 50000. A rent budget is per month.
 5. Keep answers short: a one-line summary, then the listings as a brief list
    with title, price label and one or two key facts. Never mention listing codes
    (like PAI-DEMO-002) to the user; they are internal IDs for your tools. If the
-   user asks about a listing from earlier, search again to find its code.
+   user names a listing (now or earlier), find it with find_listing.
 6. To book a site visit, find a free slot with check_visit_slots, then call
    propose_visit. The app then shows a card where the user enters their name and
    phone and taps Confirm. You cannot save bookings yourself. Never ask for a
    name or phone number. Quote slot times exactly as their `label`.
 7. Write plain text only: no markdown, no ** or #. For lists, start lines with "- ".
-   The app shows listing cards with full details under your reply."""
+   The app shows listing cards with full details under your reply.
+8. Use a listing's status. If it is sold, under offer or rented, say so plainly
+   and do not propose a visit; you may offer similar available homes. If the user
+   wants to buy a listing that is only for rent, say it is only for rent (and
+   the reverse for a sale listing).
+9. Only propose a visit for the exact listing the user asked about. If you cannot
+   find it, say so and never substitute a different home.
+10. You only help with property in this app. Politely decline anything else
+   (weather, poems, investment or stock tips) and offer property help instead."""
 
 SEARCH_TOOL = ToolSpec(
     name="search_properties",
@@ -115,6 +125,20 @@ DETAILS_TOOL = ToolSpec(
     },
 )
 
+FIND_TOOL = ToolSpec(
+    name="find_listing",
+    description=(
+        "Find listings by name, e.g. 'Oberoi Link' or 'Hiranandani Gardens'. Returns "
+        "any status (available, under_offer, sold, rented). Use it whenever the user "
+        "names a listing instead of describing what they want."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
+    },
+)
+
 SLOTS_TOOL = ToolSpec(
     name="check_visit_slots",
     description=(
@@ -148,7 +172,7 @@ PROPOSE_TOOL = ToolSpec(
 )
 
 # Read-only on purpose: no tool writes. Bookings need a person's click.
-TOOLS = [SEARCH_TOOL, DETAILS_TOOL, SLOTS_TOOL, PROPOSE_TOOL]
+TOOLS = [SEARCH_TOOL, DETAILS_TOOL, FIND_TOOL, SLOTS_TOOL, PROPOSE_TOOL]
 SLOTS_WITHOUT_DATE = 8
 
 
@@ -223,6 +247,12 @@ def run_tool(
         return {**_summary(listing), "description": listing.description,
                 "bathrooms": listing.bathrooms,
                 "available_from": str(listing.available_from or "not specified")}, [listing]
+
+    if call.name == FIND_TOOL.name:
+        found = find_listings_by_name(db, str(call.args.get("name", "")))
+        # Only available homes become cards: a sold one would look like an offer.
+        cards = [p for p in found if p.status == "available"]
+        return {"count": len(found), "results": [_summary(p) for p in found]}, cards
 
     if call.name in (SLOTS_TOOL.name, PROPOSE_TOOL.name):
         code = str(call.args.get("listing_code", "")).strip()

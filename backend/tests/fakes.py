@@ -28,8 +28,8 @@ class FakeLLM:
         return reply
 
 
-def tool_call(name: str, **args) -> LLMReply:
-    """A model turn that requests one tool."""
+def tool_call(name: str, /, **args) -> LLMReply:
+    """A model turn that requests one tool. (`/`: a tool argument may be called "name".)"""
     return LLMReply(text=None, tool_calls=[ToolCall(name=name, args=args, id=f"call-{name}")])
 
 

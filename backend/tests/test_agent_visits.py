@@ -88,9 +88,11 @@ def test_check_visit_slots_for_one_day(db):
 
 
 def test_agent_has_no_write_tool():
+    # All read-only; find_listing was added for name lookups (eval finding).
     assert {t.name for t in TOOLS} == {
         "search_properties",
         "get_property_details",
+        "find_listing",
         "check_visit_slots",
         "propose_visit",
     }
@@ -189,3 +191,46 @@ def test_agent_records_every_tool_result(db):
     assert [call.name for call, _ in result.tool_results] == ["check_visit_slots", "propose_visit"]
     assert result.tool_results[0][1]["slots"][0]["label"] == "Sun 11 Jan, 10:00"
     assert "error" in result.tool_results[1][1]  # 20:00 is outside visiting hours
+
+
+
+# ---------- find_listing (eval findings: names, sold homes, wrong-home proposals) ----------
+
+
+def test_find_listing_reports_status_and_only_available_become_cards(db):
+    llm = FakeLLM(tool_call("find_listing", name="Oberoi Link"), answer("It has been sold."))
+    result = run_agent(db, [UserMessage("Is Oberoi Link still for sale?")], llm, now=NOW)
+
+    found = last_tool_result(llm)
+    assert found["count"] == 1 and found["results"][0]["status"] == "sold"
+    assert result.listings == []  # a card for a sold home would look like an offer
+
+
+def test_find_listing_available_home_becomes_a_card(db):
+    llm = FakeLLM(tool_call("find_listing", name="Hiranandani Gardens"), answer("Found it."))
+    result = run_agent(db, [UserMessage("Hiranandani Gardens?")], llm, now=NOW)
+    assert [p.listing_code for p in result.listings] == [CODE]
+
+
+def test_find_listing_unknown_name(db):
+    llm = FakeLLM(tool_call("find_listing", name="Antilia"), answer("No such listing."))
+    run_agent(db, [UserMessage("Is Antilia for sale?")], llm, now=NOW)
+    assert last_tool_result(llm)["count"] == 0
+
+
+def test_sold_home_never_gets_a_visit_proposal(db):
+    llm = FakeLLM(
+        tool_call("find_listing", name="Oberoi Link"),
+        tool_call("propose_visit", listing_code="PAI-DEMO-011", starts_at="2026-01-11T11:00"),
+        answer("It is sold, so visits can't be booked."),
+    )
+    result = run_agent(db, [UserMessage("Book a visit to Oberoi Link")], llm, now=NOW)
+    assert "error" in last_tool_result(llm)
+    assert result.visit_proposal is None
+
+
+def test_prompt_has_the_eval_driven_rules():
+    from app.services.agent import SYSTEM_PROMPT
+
+    for phrase in ("find_listing", "never search both", "never substitute", "only for rent", "only help with property"):
+        assert phrase in SYSTEM_PROMPT.lower(), phrase
