@@ -3,10 +3,9 @@ Tests for POST /chat. The real LLM is replaced with FakeLLM through
 FastAPI's dependency overrides.
 """
 
-from types import SimpleNamespace
-
 import pytest
 
+from app.config import get_settings
 from app.main import app
 from app.routers import chat as chat_router
 from app.routers.chat import get_llm
@@ -107,9 +106,9 @@ def test_provider_failure_returns_generic_503(client, use_llm):
 
 
 def test_missing_api_key_returns_503(client, monkeypatch):
-    monkeypatch.setattr(
-        chat_router, "get_settings", lambda: SimpleNamespace(gemini_api_key=None)
-    )
+    # Real settings minus the key: other settings (e.g. rate limits) stay valid.
+    no_key = get_settings().model_copy(update={"gemini_api_key": None})
+    monkeypatch.setattr(chat_router, "get_settings", lambda: no_key)
 
     response = client.post("/chat", json=user("hi"))
 

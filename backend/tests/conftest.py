@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, engine, get_db
 from app.main import app
+from app.routers.chat import get_chat_limits
 
 
 @pytest.fixture
@@ -60,3 +61,12 @@ def tx_client(tx_db):
             yield test_client
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.fixture(autouse=True)
+def fresh_chat_limits():
+    """Every test starts with empty rate-limit counters, so chat tests can't
+    block each other just by running in the same minute."""
+    get_chat_limits.cache_clear()
+    yield
+    get_chat_limits.cache_clear()
