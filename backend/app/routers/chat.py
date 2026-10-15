@@ -2,15 +2,14 @@
 Prop AI - chat endpoint for the AI agent.
 """
 
-from dataclasses import dataclass
 from functools import lru_cache
-from math import ceil
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
+from app.routers.limits import RateLimits, enforce
 from app.schemas.chat import ChatRequest, ChatResponse, VisitProposalRead
 from app.services.agent import run_agent
 from app.services.llm.base import (
@@ -45,45 +44,25 @@ def get_llm() -> LLMClient:
     return _gemini_client()
 
 
-@dataclass(frozen=True)
-class ChatLimits:
-    per_visitor: SlidingWindowLimiter  # keyed by IP, per minute
-    per_site: SlidingWindowLimiter  # one key for everyone, per day
-
-
 @lru_cache
-def get_chat_limits() -> ChatLimits:
+def get_chat_limits() -> RateLimits:
     """Dependency: built once, so counts persist across requests."""
     settings = get_settings()
-    return ChatLimits(
+    return RateLimits(
         per_visitor=SlidingWindowLimiter(settings.chat_per_minute, 60),
         per_site=SlidingWindowLimiter(settings.chat_per_day, 24 * 60 * 60),
     )
 
 
-def _too_many(detail: str, wait: float) -> HTTPException:
-    seconds = max(1, ceil(wait))
-    return HTTPException(status_code=429, detail=detail.format(seconds=seconds),
-                         headers={"Retry-After": str(seconds)})
-
-
-def rate_limit_chat(request: Request, limits: ChatLimits = Depends(get_chat_limits)) -> None:
-    """Dependency: refuse with 429 before any Gemini call is made.
-
-    Per-visitor first: a flooder's blocked requests then never count toward
-    the site's daily cap, so one person can't use it up for everyone.
-    Behind a hosting proxy, request.client is the proxy unless uvicorn runs
-    with --proxy-headers (set at deploy time).
-    """
-    visitor = request.client.host if request.client else "unknown"
-    wait = limits.per_visitor.hit(visitor)
-    if wait is not None:
-        raise _too_many("You're sending messages too quickly. "
-                        "Please wait {seconds} seconds and try again.", wait)
-    wait = limits.per_site.hit("site")
-    if wait is not None:
-        raise _too_many("Prop AI has reached its daily chat limit. Please try again later; "
-                        "search and listings still work.", wait)
+def rate_limit_chat(request: Request, limits: RateLimits = Depends(get_chat_limits)) -> None:
+    """Dependency: refuse with 429 before any Gemini call is made."""
+    enforce(
+        limits,
+        request,
+        too_fast="You're sending messages too quickly. Please wait {wait} and try again.",
+        site_full="Prop AI has reached its daily chat limit. Please try again later; "
+                  "search and listings still work.",
+    )
 
 
 @router.post("/chat", response_model=ChatResponse, dependencies=[Depends(rate_limit_chat)])

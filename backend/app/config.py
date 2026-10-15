@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     chat_per_minute: int = Field(default=5, ge=1)
     chat_per_day: int = Field(default=200, ge=1)
 
+    # POST /visits rate limits: without them a bot could book every slot.
+    # 3 per hour covers a real buyer (one or two visits plus a rebooking).
+    visits_per_hour: int = Field(default=3, ge=1)
+    visits_per_day: int = Field(default=100, ge=1)
+
 
 @lru_cache
 def get_settings() -> Settings:

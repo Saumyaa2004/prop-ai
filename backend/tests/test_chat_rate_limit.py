@@ -6,7 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.routers.chat import ChatLimits, get_chat_limits, get_llm
+from app.routers.chat import get_chat_limits, get_llm
+from app.routers.limits import RateLimits
 from app.services.rate_limit import SlidingWindowLimiter
 from tests.fakes import FakeLLM, answer
 from tests.test_rate_limit import FakeClock
@@ -23,7 +24,7 @@ def set_limits(clock):
     llm = FakeLLM(answer("Hi!"), repeat_last=True)
 
     def install(per_minute: int, per_day: int) -> FakeLLM:
-        limits = ChatLimits(
+        limits = RateLimits(
             per_visitor=SlidingWindowLimiter(per_minute, 60, clock=clock),
             per_site=SlidingWindowLimiter(per_day, 24 * 60 * 60, clock=clock),
         )
