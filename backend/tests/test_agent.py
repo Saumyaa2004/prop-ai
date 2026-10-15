@@ -6,7 +6,7 @@ Expected listings come from the fictional seed data in app/seed.py.
 
 from app.schemas.property import PropertySearchFilters
 from app.services.agent import MAX_STEPS, SEARCH_TOOL, run_agent, run_tool
-from app.services.llm.base import ToolCall, ToolResultMessage, UserMessage
+from app.services.llm.base import AssistantMessage, ToolCall, ToolResultMessage, UserMessage
 from tests.fakes import FakeLLM, answer, tool_call
 
 
@@ -83,7 +83,8 @@ def test_missing_listing_type_is_sent_back_as_an_error(db):
         answer("Are you looking to buy or rent?"),
     )
 
-    result = run_agent(db, [UserMessage("something in Powai")], llm)
+    # "to buy": past the buy-or-rent gate, so the model's own mistake is what's tested.
+    result = run_agent(db, [UserMessage("something to buy in Powai")], llm)
 
     error = last_tool_result(llm)["error"]
     assert "listing_type" in error
@@ -106,6 +107,49 @@ def test_unknown_tool_is_an_error(db):
 
 
 # ---------- guardrails ----------
+
+
+def test_search_waits_until_the_user_says_buy_or_rent(db):
+    # Eval finding: the prompt rule alone failed 0/3, so the backend enforces it.
+    llm = FakeLLM(
+        tool_call("search_properties", listing_type="sale", locality="Powai", bedrooms=2),
+        answer("Are you looking to buy or rent?"),
+    )
+
+    result = run_agent(db, [UserMessage("Show me a 2BHK in Powai")], llm)
+
+    assert "buy or rent" in last_tool_result(llm)["error"]
+    assert result.listings == []  # no cards mixing totals and monthly rents
+
+
+def test_search_runs_once_an_earlier_message_says_rent(db):
+    llm = FakeLLM(
+        tool_call("search_properties", listing_type="rent", locality="Powai", bedrooms=2),
+        answer("Here is a rental."),
+    )
+    history = [
+        UserMessage("Show me a 2BHK in Powai"),
+        AssistantMessage("Are you looking to buy or rent?"),
+        UserMessage("rent"),
+    ]
+
+    result = run_agent(db, history, llm)
+
+    assert last_tool_result(llm)["count"] >= 1
+    assert all(p.listing_type == "rent" for p in result.listings)
+
+
+def test_assistant_words_do_not_open_the_gate(db):
+    # Only the user's intent counts: the model saying "buy or rent?" isn't an answer.
+    llm = FakeLLM(
+        tool_call("search_properties", listing_type="sale", locality="Powai"),
+        answer("Buy or rent?"),
+    )
+    history = [UserMessage("hi"), AssistantMessage("Do you want to buy or rent?"), UserMessage("Powai")]
+
+    run_agent(db, history, llm)
+
+    assert "error" in last_tool_result(llm)
 
 
 def test_step_limit_stops_a_looping_model(db):

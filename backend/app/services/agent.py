@@ -27,6 +27,7 @@ from app.services.llm.base import (
     ToolSpec,
     UserMessage,
 )
+from app.services.intent import states_buy_or_rent
 from app.services.privacy import redact_phone_numbers
 from app.services.property_details import find_listings_by_name, get_property_by_code
 from app.services.property_search import search_properties
@@ -175,6 +176,11 @@ PROPOSE_TOOL = ToolSpec(
 TOOLS = [SEARCH_TOOL, DETAILS_TOOL, FIND_TOOL, SLOTS_TOOL, PROPOSE_TOOL]
 SLOTS_WITHOUT_DATE = 8
 
+ASK_BUY_OR_RENT = {
+    "error": "Not searched: the user hasn't said whether they want to buy or rent. "
+             "Ask them that first (sale prices are totals, rent is monthly)."
+}
+
 
 @dataclass(frozen=True)
 class VisitProposal:
@@ -303,6 +309,10 @@ def run_agent(
     calls_made: list[ToolCall] = []
     results_seen: list[tuple[ToolCall, dict[str, Any]]] = []
     proposal: VisitProposal | None = None
+    # Only the user's words count: the model asking "buy or rent?" isn't an answer.
+    buy_or_rent_known = any(
+        states_buy_or_rent(m.text) for m in messages if isinstance(m, UserMessage)
+    )
 
     for _ in range(MAX_STEPS):
         reply = llm.generate(system, messages, TOOLS)
@@ -314,7 +324,10 @@ def run_agent(
         messages.append(ToolCallTurn(reply))
         for call in reply.tool_calls:
             calls_made.append(call)
-            result, found = run_tool(db, call, now)
+            if call.name == SEARCH_TOOL.name and not buy_or_rent_known:
+                result, found = ASK_BUY_OR_RENT, []  # enforced here; the prompt rule alone failed evals
+            else:
+                result, found = run_tool(db, call, now)
             for p in found:
                 listings.setdefault(p.listing_code, p)
             if "proposal" in result:  # from the tool result, never from the model's text
